@@ -40,5 +40,6 @@ Push 到 main 分支自动构建，APK 在 Actions → Artifacts 下载：
 
 ## 相关
 
-- 后端：[IV16SL/cloud-mail](https://github.com/IV16SL/cloud-mail)
+- 后端原仓库：[maillab/cloud-mail](https://github.com/maillab/cloud-mail)
+- 本 App 适配的 fork：[IV16SL/cloud-mail](https://github.com/IV16SL/cloud-mail)（部分功能如 PGP、头像、capabilities 接口暂时只在 fork 中实现）
 - API 文档见后端仓库 `API_ANDROID.md`
