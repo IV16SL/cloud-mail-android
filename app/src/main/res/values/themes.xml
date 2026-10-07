@@ -1,0 +1,13 @@
+<resources>
+    <!-- 开屏主题：纯色背景，图标由 Compose 自定义开屏绘制，避免双重图标 -->
+    <style name="Theme.CloudMail" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="postSplashScreenTheme">@style/Theme.CloudMail.Main</item>
+    </style>
+    <!-- 主界面主题（开屏结束后切换到这个） -->
+    <style name="Theme.CloudMail.Main" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
