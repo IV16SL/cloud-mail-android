@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标背景：对标 cloud-mail-icon.svg 的蓝色径向渐变 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="radial"
+        android:centerX="0.5"
+        android:centerY="0.16"
+        android:gradientRadius="86dp"
+        android:startColor="#4A96FC"
+        android:centerColor="#2470E8"
+        android:endColor="#0F53BE" />
+</shape>
