@@ -1,0 +1,356 @@
+package me.huanjue.cloudmail.data
+
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.bouncycastle.bcpg.ArmoredInputStream
+import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openpgp.PGPCompressedData
+import org.bouncycastle.openpgp.PGPEncryptedData
+import org.bouncycastle.openpgp.PGPEncryptedDataList
+import org.bouncycastle.openpgp.PGPKeyPair
+import org.bouncycastle.openpgp.PGPKeyRingGenerator
+import org.bouncycastle.openpgp.PGPLiteralData
+import org.bouncycastle.openpgp.PGPObjectFactory
+import org.bouncycastle.openpgp.PGPPrivateKey
+import org.bouncycastle.openpgp.PGPPublicKey
+import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData
+import org.bouncycastle.openpgp.PGPSecretKey
+import org.bouncycastle.openpgp.PGPSecretKeyRing
+import org.bouncycastle.openpgp.PGPSecretKeyRingCollection
+import org.bouncycastle.openpgp.PGPSignature
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.security.SecureRandom
+import java.security.Security
+import java.util.Date
+
+class PgpException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** 钥匙信息（展示用） */
+data class PgpKeyInfo(
+    val userId: String,      // 钥匙上的用户 ID，一般是 姓名 <邮箱>
+    val fingerprint: String, // 指纹（大写 hex）
+    val keyId: String        // key id（hex）
+)
+
+/**
+ * PGP 管理：BouncyCastle 纯 Java 实现，内置在 App 里，不依赖 OpenKeychain 等外部应用。
+ *
+ * 分工（对标网页版）：
+ * - 发信加密走服务端：写信时传 pgpEncrypt=true，后端用 openpgp 按收件人公钥加密，
+ *   App 只负责查收件人公钥状态（/pgp/key-status）做前端拦截。
+ * - 收信解密在端侧：私钥只存本机（EncryptedSharedPreferences），绝不上传，
+ *   解密必须在 App 里做，这就是 BouncyCastle 的用处。
+ */
+class PgpManager(private val context: Context, private val settings: AppSettings) {
+
+    companion object {
+        const val ARMOR_BEGIN = "-----BEGIN PGP MESSAGE-----"
+        private const val ARMOR_END = "-----END PGP MESSAGE-----"
+        private const val SECRET_ARMOR_BEGIN = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+
+        init {
+            // Android 自带一个阉割版 BC（同名 "BC"），把完整版插到第 1 位盖住它，
+            // 否则 JcePBESecretKeyDecryptorBuilder 等会解析到系统阉割版而缺算法。
+            if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
+                !is BouncyCastleProvider
+            ) {
+                Security.insertProviderAt(BouncyCastleProvider(), 1)
+            }
+        }
+
+        /** 文本里是否包含 PGP 密文（列表页绿锁判断用） */
+        fun containsEncryptedData(text: String?): Boolean =
+            text != null && text.contains(ARMOR_BEGIN)
+
+        /** 从文本（可能混有其他内容/HTML）里提取第一个 PGP MESSAGE armor 块 */
+        fun extractArmorBlock(text: String): String? {
+            val start = text.indexOf(ARMOR_BEGIN)
+            if (start < 0) return null
+            val end = text.indexOf(ARMOR_END, start)
+            if (end < 0) return null
+            return text.substring(start, end + ARMOR_END.length)
+        }
+
+        /** 粗糙去 HTML 标签（armor 块提取用，armor 里没有 <） */
+        fun stripHtml(html: String): String =
+            html.replace(Regex("<[^>]*>"), "")
+    }
+
+    private fun encryptedPrefs(): SharedPreferences {
+        // security-crypto 1.0.0（stable）的 API：MasterKeys + 别名，
+        // 注意参数顺序是 (name, masterKeyAlias, context, ...)
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        return EncryptedSharedPreferences.create(
+            "pgp_keys",
+            masterKeyAlias,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    private suspend fun activeUserId(): Long =
+        settings.getActiveSession()?.userId ?: 0L
+
+    private fun armorKey(userId: Long) = "private_key_armor_$userId"
+    private fun protectedKey(userId: Long) = "private_key_protected_$userId"
+
+    suspend fun hasPrivateKey(): Boolean = withContext(Dispatchers.IO) {
+        !encryptedPrefs().getString(armorKey(activeUserId()), null).isNullOrBlank()
+    }
+
+    suspend fun isProtectedKey(): Boolean = withContext(Dispatchers.IO) {
+        encryptedPrefs().getBoolean(protectedKey(activeUserId()), false)
+    }
+
+    suspend fun getKeyInfo(): PgpKeyInfo? = withContext(Dispatchers.IO) {
+        val armor = encryptedPrefs().getString(armorKey(activeUserId()), null)
+            ?: return@withContext null
+        parseSecretKeys(armor).firstOrNull { it.isMasterKey }
+            ?.let { keyInfoOf(it) }
+            ?: parseSecretKeys(armor).firstOrNull()?.let { keyInfoOf(it) }
+    }
+
+    /**
+     * 导入私钥 armor 文本。校验通过后加密存到本地（按登录账号隔离）。
+     * @return 钥匙信息（展示指纹用）
+     */
+    suspend fun importPrivateKey(armored: String): PgpKeyInfo =
+        withContext(Dispatchers.IO) {
+            val armor = armored.trim()
+            require(armor.contains(SECRET_ARMOR_BEGIN)) {
+                "不是有效的 PGP 私钥（缺少 -----BEGIN PGP PRIVATE KEY BLOCK-----）"
+            }
+            val keys = parseSecretKeys(armor)
+            require(keys.isNotEmpty()) { "私钥解析失败" }
+            val master = keys.firstOrNull { it.isMasterKey } ?: keys.first()
+            // 导入时试一次空口令，判断这把钥匙是否设了口令（解密时决定要不要弹窗）
+            val protected = try {
+                extractPrivateKey(master, CharArray(0))
+                false
+            } catch (_: Exception) {
+                true
+            }
+            val uid = activeUserId()
+            encryptedPrefs().edit()
+                .putString(armorKey(uid), armor)
+                .putBoolean(protectedKey(uid), protected)
+                .apply()
+            keyInfoOf(master)
+        }
+
+    suspend fun deletePrivateKey() = withContext(Dispatchers.IO) {
+        val uid = activeUserId()
+        encryptedPrefs().edit()
+            .remove(armorKey(uid))
+            .remove(protectedKey(uid))
+            .apply()
+    }
+
+    /**
+     * 在 App 内生成新的 PGP 密钥对（签名主钥 + 加密子钥）。
+     * keyType: "RSA"（RSA 3072，兼容性最好）或 "ED25519"（Ed25519 签名 + X25519 加密，更小更快）
+     * 生成的私钥自动导入（存本机），公钥 armor 一并返回，方便复制去发布
+     *（比如 keys.openpgp.org），否则别人查不到你的公钥、没法给你发加密邮件。
+     * @param passphrase 口令；传 null 或空表示无口令
+     * @return Pair(钥匙信息, 公钥 armor 文本)
+     */
+    suspend fun generateKeyPair(
+        name: String,
+        email: String,
+        passphrase: CharArray?,
+        keyType: String = "RSA"
+    ): Pair<PgpKeyInfo, String> = withContext(Dispatchers.IO) {
+        val userId = if (name.isBlank()) email.trim() else "${name.trim()} <${email.trim()}>"
+        if (email.isBlank()) throw PgpException("邮箱不能为空")
+
+        val sha1Calc = JcaPGPDigestCalculatorProviderBuilder().build()
+            .get(HashAlgorithmTags.SHA1)
+
+        val signingKeyPair: JcaPGPKeyPair
+        val encryptionKeyPair: JcaPGPKeyPair
+        if (keyType == "ED25519") {
+            val edGen = java.security.KeyPairGenerator.getInstance("Ed25519", "BC")
+            @Suppress("DEPRECATION")
+            val eddsaAlg = PGPPublicKey.EDDSA
+            signingKeyPair = JcaPGPKeyPair(
+                eddsaAlg, edGen.generateKeyPair(), Date()
+            )
+            val xGen = java.security.KeyPairGenerator.getInstance("X25519", "BC")
+            encryptionKeyPair = JcaPGPKeyPair(
+                PGPPublicKey.ECDH, xGen.generateKeyPair(), Date()
+            )
+        } else {
+            val keyGen = java.security.KeyPairGenerator.getInstance("RSA", "BC")
+            keyGen.initialize(3072, SecureRandom())
+            signingKeyPair = JcaPGPKeyPair(
+                PGPPublicKey.RSA_SIGN, keyGen.generateKeyPair(), Date()
+            )
+            encryptionKeyPair = JcaPGPKeyPair(
+                PGPPublicKey.RSA_ENCRYPT, keyGen.generateKeyPair(), Date()
+            )
+        }
+        val encryptor = JcePBESecretKeyEncryptorBuilder(
+            PGPEncryptedData.AES_256, sha1Calc
+        ).setProvider("BC").build(passphrase?.takeIf { it.isNotEmpty() } ?: CharArray(0))
+
+        val keyRingGen = PGPKeyRingGenerator(
+            PGPSignature.POSITIVE_CERTIFICATION,
+            signingKeyPair,
+            userId,
+            sha1Calc,
+            null, null,
+            JcaPGPContentSignerBuilder(
+                signingKeyPair.publicKey.algorithm, HashAlgorithmTags.SHA256
+            ).setProvider("BC"),
+            encryptor
+        )
+        keyRingGen.addSubKey(encryptionKeyPair)
+
+        val secretKeyRing = keyRingGen.generateSecretKeyRing()
+        val publicKeyRing = keyRingGen.generatePublicKeyRing()
+
+        val privateArmor = ByteArrayOutputStream().use { bos ->
+            ArmoredOutputStream(bos).use { out -> secretKeyRing.encode(out) }
+            bos.toString(Charsets.UTF_8.name())
+        }
+        val publicArmor = ByteArrayOutputStream().use { bos ->
+            ArmoredOutputStream(bos).use { out -> publicKeyRing.encode(out) }
+            bos.toString(Charsets.UTF_8.name())
+        }
+
+        val info = importPrivateKey(privateArmor)
+        Pair(info, publicArmor)
+    }
+
+    /** PGP 功能总开关（按登录用户隔离，默认开） */
+    suspend fun isPgpEnabled(): Boolean = withContext(Dispatchers.IO) {
+        encryptedPrefs().getBoolean("pgp_enabled_${activeUserId()}", true)
+    }
+
+    suspend fun setPgpEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        encryptedPrefs().edit().putBoolean("pgp_enabled_${activeUserId()}", enabled).apply()
+    }
+
+    /**
+     * 解密 PGP 消息。
+     * @param messageOrText 完整的 armor 文本，或包含 armor 的邮件正文（自动提取）
+     * @param passphrase 私钥口令；无口令钥匙传 null
+     * @return 解密出的明文
+     */
+    suspend fun decrypt(messageOrText: String, passphrase: CharArray?): String =
+        withContext(Dispatchers.IO) {
+            val armor = extractArmorBlock(messageOrText)
+                ?: throw PgpException("找不到 PGP 密文块")
+            val keyArmor = encryptedPrefs()
+                .getString(armorKey(activeUserId()), null)
+                ?: throw PgpException("还没有导入 PGP 私钥，请先在设置里导入")
+            val secretKeys = parseSecretKeys(keyArmor)
+            if (secretKeys.isEmpty()) throw PgpException("私钥解析失败")
+
+            val factory = PGPObjectFactory(
+                ArmoredInputStream(ByteArrayInputStream(armor.toByteArray(Charsets.UTF_8))),
+                JcaKeyFingerprintCalculator()
+            )
+            // 跳过可能存在的 marker 包，找到加密数据包列表
+            //（不写显式可空类型，让 ?: throw 把类型收窄为非空，避免智能转换失效）
+            val encList = try {
+                var found: PGPEncryptedDataList? = null
+                var obj: Any? = factory.nextObject()
+                while (obj != null) {
+                    if (obj is PGPEncryptedDataList) {
+                        found = obj
+                        break
+                    }
+                    obj = factory.nextObject()
+                }
+                found
+            } catch (_: Exception) {
+                null
+            } ?: throw PgpException("密文格式不对：找不到加密数据包")
+
+            val pw = passphrase ?: CharArray(0)
+            var lastErr: Exception? = null
+            // 逐把钥匙试：加密可能用的是子钥匙，不能只认 master key
+            for (sk in secretKeys) {
+                val encData = encList.encryptedDataObjects.asSequence()
+                    .filterIsInstance<PGPPublicKeyEncryptedData>()
+                    .firstOrNull { it.keyID == sk.keyID }
+                    ?: continue
+                try {
+                    val privateKey = extractPrivateKey(sk, pw)
+                    val clear = encData.getDataStream(
+                        JcePublicKeyDataDecryptorFactoryBuilder()
+                            .setProvider("BC")
+                            .build(privateKey)
+                    )
+                    return@withContext readLiteral(clear)
+                } catch (e: Exception) {
+                    lastErr = e
+                }
+            }
+            throw PgpException(
+                if (lastErr != null) "解密失败：口令不对，或这封邮件不是发给这把钥匙的"
+                else "这封邮件不是用已导入的钥匙加密的",
+                lastErr
+            )
+        }
+
+    // ---------- 内部 ----------
+
+    private fun parseSecretKeys(armor: String): List<PGPSecretKey> {
+        val out = mutableListOf<PGPSecretKey>()
+        try {
+            val rings = PGPSecretKeyRingCollection(
+                ArmoredInputStream(ByteArrayInputStream(armor.toByteArray(Charsets.UTF_8))),
+                JcaKeyFingerprintCalculator()
+            )
+            val ringIt = rings.keyRings
+            while (ringIt.hasNext()) {
+                val keyIt = (ringIt.next() as PGPSecretKeyRing).secretKeys
+                while (keyIt.hasNext()) out += keyIt.next() as PGPSecretKey
+            }
+        } catch (_: Exception) {
+        }
+        return out
+    }
+
+    private fun extractPrivateKey(
+        secretKey: PGPSecretKey,
+        passphrase: CharArray
+    ): PGPPrivateKey =
+        secretKey.extractPrivateKey(
+            JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase)
+        )
+
+    private fun keyInfoOf(key: PGPSecretKey): PgpKeyInfo {
+        val fp = key.publicKey.fingerprint.joinToString("") { "%02X".format(it) }
+        val userId = key.userIDs.asSequence().firstOrNull() ?: ""
+        val keyId = "%016X".format(key.keyID)
+        return PgpKeyInfo(userId, fp, keyId)
+    }
+
+    private fun readLiteral(clear: InputStream): String {
+        var obj: Any? = PGPObjectFactory(clear, JcaKeyFingerprintCalculator()).nextObject()
+        if (obj is PGPCompressedData) {
+            obj = PGPObjectFactory(obj.dataStream, JcaKeyFingerprintCalculator()).nextObject()
+        }
+        val literal = obj as? PGPLiteralData ?: throw PgpException("密文内容不是文字数据")
+        return literal.inputStream.readBytes().toString(Charsets.UTF_8)
+    }
+}
