@@ -31,7 +31,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -65,10 +68,10 @@ fun DraftsScreen(
     // 只显示当前登录账号的草稿
     val myDrafts = drafts.filter { it.userId == 0L || it.userId == activeUserId?.userId }
 
-    var searchText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var searchText by remember { mutableStateOf("") }
 
     // 搜索过滤：主题、收件人
-    val filteredDrafts = androidx.compose.runtime.remember(myDrafts, searchText) {
+    val filteredDrafts = remember(myDrafts, searchText) {
         val kw = searchText.trim().lowercase()
         if (kw.isEmpty()) myDrafts else myDrafts.filter {
             (it.subject ?: "").lowercase().contains(kw) ||
@@ -99,7 +102,7 @@ fun DraftsScreen(
                 .padding(padding)
         ) {
             // 搜索框
-            androidx.compose.material3.OutlinedTextField(
+            OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
                 placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
@@ -131,10 +134,8 @@ fun DraftsScreen(
                 }
             } else {
                 LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
+                    modifier = Modifier.fillMaxSize()
+                ) {
                 items(filteredDrafts, key = { it.id }) { draft ->
                     DraftRow(
                         draft = draft,
@@ -195,5 +196,5 @@ private fun DraftRow(
             )
         }
     }
-        } // Column
+        }
 }

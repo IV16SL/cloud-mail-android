@@ -68,8 +68,8 @@ fun StarredScreen(
         val kw = searchText.trim().lowercase()
         if (kw.isEmpty()) emails else emails.filter {
             (it.subject ?: "").lowercase().contains(kw) ||
-            (it.fromName ?: "").lowercase().contains(kw) ||
-            (it.fromEmail ?: "").lowercase().contains(kw)
+            (it.name ?: "").lowercase().contains(kw) ||
+            (it.sendEmail ?: "").lowercase().contains(kw)
         }
     }
 
@@ -205,4 +205,5 @@ fun StarredScreen(
             }
         }
     }
+}
 }
