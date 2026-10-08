@@ -88,6 +88,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // 开屏时预热：恢复会话（含 detectApiPrefix 网络探测）+ 预读邮件缓存
+        // 这样开屏动画播完时数据已就绪，AppNav 无需再转圈
+        val app = applicationContext as CloudMailApp
+        val startupDone = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
+        androidx.lifecycle.lifecycleScope.launch {
+            val ok = try {
+                app.container.authRepository.restoreSession()
+            } catch (_: Exception) { false }
+            // 预热邮件头缓存（读 DataStore，很快）
+            if (ok) {
+                try {
+                    val accounts = app.container.mailRepository.accounts()
+                    val account = accounts.firstOrNull()
+                    if (account != null) {
+                        // 触发缓存读取，让 DataStore 热起来
+                        app.container.mailCache.get(account.accountId, 0)
+                        app.container.mailCache.get(account.accountId, 1)
+                    }
+                } catch (_: Exception) { }
+            }
+            startupDone.value = ok
+        }
+
         // 401（token 失效）时清掉本地会话并踢回登录页
         NetworkModule.onUnauthorized = {
             // 注意：此时可能在任意界面，用全局导航处理
@@ -104,7 +127,7 @@ class MainActivity : ComponentActivity() {
             }
             val dynamicColor by app.container.settings.dynamicColor.collectAsState(initial = false)
             CloudMailTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
-                AppNav()
+                AppNav(startupDone = startupDone)
             }
         }
     }
@@ -119,18 +142,18 @@ object UnauthorizedBus {
 }
 
 @Composable
-fun AppNav() {
+fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
     val context = LocalContext.current
     val app = context.applicationContext as CloudMailApp
     val container = app.container
     val navController = rememberNavController()
 
-    var startDestination by remember { mutableStateOf<String?>(null) }
-
-    // 启动时恢复会话：有 token 直接进主页
-    LaunchedEffect(Unit) {
-        val ok = container.authRepository.restoreSession()
-        startDestination = if (ok) Routes.HOME else Routes.login()
+    // 开屏时已预热，这里直接用结果，无需再转圈
+    val restored by startupDone.collectAsState()
+    val startDestination = when (restored) {
+        true -> Routes.HOME
+        false -> Routes.login()
+        null -> null // 还在预热中（极少见，开屏 1.1s 通常够）
     }
 
     // 401：当前账号 token 失效时删掉该会话；还有别的账号就自动切过去，没有才踢回登录页
