@@ -16,6 +16,17 @@ class CloudMailApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        // 预热 WebView：提前初始化 Chromium 引擎，打开邮件详情更快
+        try {
+            android.webkit.WebView.setDataDirectorySuffix("main")
+        } catch (_: Exception) {}
+        Thread {
+            try {
+                val wv = android.webkit.WebView(this)
+                wv.settings.javaScriptEnabled = false
+                wv.destroy()
+            } catch (_: Exception) {}
+        }.start()
     }
 }
 
