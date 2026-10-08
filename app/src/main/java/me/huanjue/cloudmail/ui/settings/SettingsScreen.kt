@@ -41,6 +41,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import me.huanjue.cloudmail.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -88,7 +90,7 @@ fun SettingsScreen(
                         // 换服务器 = 换账号，必须重登
                         onLogout()
                     } catch (e: Exception) {
-                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_save_failed, e.message ?: "")) }
+                        scope.launch { snackBarHostState.showSnackbar(context.getString(R.string.settings_save_failed, e.message ?: "")) }
                     }
                 }
             }
