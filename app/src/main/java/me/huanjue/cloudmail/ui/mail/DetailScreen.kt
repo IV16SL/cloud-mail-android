@@ -450,6 +450,17 @@ fun DetailScreen(
                             factory = { ctx ->
                                 WebView(ctx).apply {
                                     settings.javaScriptEnabled = false
+                                    // 性能优化
+                                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                    settings.domStorageEnabled = false
+                                    settings.allowFileAccess = false
+                                    settings.allowContentAccess = false
+                                    settings.setSupportZoom(false)
+                                    settings.builtInZoomControls = false
+                                    settings.displayZoomControls = false
+                                    // 邮件 HTML 自适应宽度
+                                    settings.loadWithOverviewMode = true
+                                    settings.useWideViewPort = true
                                     loadDataWithBaseURL(
                                         null, html, "text/html", "UTF-8", null
                                     )
