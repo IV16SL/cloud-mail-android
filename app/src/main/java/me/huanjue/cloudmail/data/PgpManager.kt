@@ -126,7 +126,25 @@ class PgpManager(private val context: Context, private val settings: AppSettings
     }
 
     suspend fun isProtectedKey(): Boolean = withContext(Dispatchers.IO) {
-        encryptedPrefs().getBoolean(protectedKey(activeUserId()), false)
+        // 先读导入时存的 flag；如果找不到（比如导入时 userId 不对），动态检测
+        val uid = activeUserId()
+        if (encryptedPrefs().contains(protectedKey(uid))) {
+            return@withContext encryptedPrefs().getBoolean(protectedKey(uid), false)
+        }
+        // 动态检测：试所有子钥匙的空口令，有一把要口令就算有保护
+        val armor = encryptedPrefs().getString(armorKey(uid), null) ?: return@withContext false
+        val keys = parseSecretKeys(armor)
+        val protected = keys.any { sk ->
+            try {
+                extractPrivateKey(sk, CharArray(0))
+                false
+            } catch (_: Exception) {
+                true
+            }
+        }
+        // 顺手把检测结果存回去，下次直接读
+        encryptedPrefs().edit().putBoolean(protectedKey(uid), protected).apply()
+        protected
     }
 
     suspend fun getKeyInfo(): PgpKeyInfo? = withContext(Dispatchers.IO) {
