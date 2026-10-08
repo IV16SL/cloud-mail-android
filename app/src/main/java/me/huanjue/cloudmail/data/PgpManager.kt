@@ -328,6 +328,8 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             } ?: throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_bad_format))
 
             val pw = passphrase ?: CharArray(0)
+            // 诊断：只记口令长度，不记内容
+            android.util.Log.w("PgpManager", "decrypt pwLen=${pw.size}")
             var lastErr: Exception? = null
             var matchedKey = false
             var matchedSk: org.bouncycastle.openpgp.PGPSecretKey? = null

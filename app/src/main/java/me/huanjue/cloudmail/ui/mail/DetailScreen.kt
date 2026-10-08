@@ -102,12 +102,14 @@ fun DetailScreen(
 
     fun doDecrypt(pw: CharArray?) {
         val src = email?.let { pgpSourceText(it) } ?: return
+        // 诊断：只记口令长度，不记内容
+        android.util.Log.w("DetailScreen", "doDecrypt pwLen=${pw?.size ?: -1}")
         scope.launch {
             decrypting = true
             try {
                 decryptedText = pgpManager.decrypt(src, pw)
             } catch (e: Exception) {
-                snack("解密失败：${e.message}")
+                snack(context.getString(R.string.detail_pgp_decrypt_failed, e.message ?: ""))
             } finally {
                 decrypting = false
             }
@@ -117,7 +119,7 @@ fun DetailScreen(
     fun onDecryptClick() {
         scope.launch {
             if (!pgpManager.hasPrivateKey()) {
-                snack("请先在设置 → PGP 私钥里导入私钥")
+                snack(context.getString(R.string.detail_pgp_no_key_hint))
                 return@launch
             }
             if (pgpManager.isProtectedKey()) {
@@ -142,14 +144,14 @@ fun DetailScreen(
             email = item
             isStarred = item?.starId != null
             if (item == null) {
-                error = "邮件不存在或已被删除"
+                error = context.getString(R.string.detail_not_found)
             } else {
                 pgpEncrypted = pgpFeatureOn && serverPgpOn && pgpSourceText(item) != null
             }
         } catch (e: ApiException) {
             error = e.message
         } catch (e: Exception) {
-            error = "网络错误：${e.message}"
+            error = context.getString(R.string.common_network_error, e.message ?: "")
         } finally {
             loading = false
         }
@@ -168,7 +170,7 @@ fun DetailScreen(
             } catch (e: ApiException) {
                 scope.launch { snackbarHostState.showSnackbar(e.message) }
             } catch (e: Exception) {
-                scope.launch { snackbarHostState.showSnackbar("网络错误：${e.message}") }
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_network_error, e.message ?: "")) }
             }
         }
     }
@@ -181,7 +183,7 @@ fun DetailScreen(
             } catch (e: ApiException) {
                 scope.launch { snackbarHostState.showSnackbar(e.message) }
             } catch (e: Exception) {
-                scope.launch { snackbarHostState.showSnackbar("网络错误：${e.message}") }
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_network_error, e.message ?: "")) }
             }
         }
     }
@@ -192,14 +194,14 @@ fun DetailScreen(
             downloadingAtt = att.attId
             try {
                 val serverUrl = app.container.settings.getServerUrl()
-                    ?: throw Exception("未设置服务器地址")
+                    ?: throw Exception(context.getString(R.string.detail_no_server))
                 var bytes = mailRepository.downloadAttachment(serverUrl, att.key)
                 var filename = att.filename.ifBlank { "attachment" }
                 // PGP 加密的附件（.pgp）：先解密
                 if (filename.endsWith(".pgp", ignoreCase = true)) {
                     val text = bytes.toString(Charsets.UTF_8)
                     if (!text.contains(PgpManager.ARMOR_BEGIN)) {
-                        throw Exception("二进制 PGP 附件暂不支持，请在网页版下载")
+                        throw Exception(context.getString(R.string.detail_binary_pgp_unsupported))
                     }
                     val pw = if (pgpManager.isProtectedKey()) {
                         // 有口令的钥匙：这里简化处理，用已缓存的口令逻辑
@@ -220,13 +222,13 @@ fun DetailScreen(
                 }
                 val uri = resolver.insert(
                     android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
-                ) ?: throw Exception("无法创建下载文件")
+                ) ?: throw Exception(context.getString(R.string.detail_create_file_failed))
                 resolver.openOutputStream(uri)?.use { it.write(bytes) }
-                    ?: throw Exception("写入文件失败")
+                    ?: throw Exception(context.getString(R.string.detail_write_file_failed))
                 values.clear()
                 values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
                 resolver.update(uri, values, null, null)
-                snack("已保存到下载：$filename")
+                snack(context.getString(R.string.detail_saved_to_download, filename))
                 // 尝试打开
                 try {
                     val openIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -234,13 +236,13 @@ fun DetailScreen(
                         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     context.startActivity(
-                        android.content.Intent.createChooser(openIntent, "打开附件")
+                        android.content.Intent.createChooser(openIntent, context.getString(R.string.detail_open))
                     )
                 } catch (_: Exception) {
                     // 没有能打开的应用就不管了，文件已保存
                 }
             } catch (e: Exception) {
-                snack("下载失败：${e.message}")
+                snack(context.getString(R.string.detail_download_failed, e.message ?: ""))
             } finally {
                 downloadingAtt = null
             }
@@ -250,16 +252,16 @@ fun DetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("删除邮件") },
-            text = { Text("确定删除这封邮件吗？") },
+            title = { Text(stringResource(R.string.detail_delete_title)) },
+            text = { Text(stringResource(R.string.detail_delete_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     doDelete()
-                }) { Text("删除") }
+                }) { Text(stringResource(R.string.common_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -268,12 +270,12 @@ fun DetailScreen(
     if (showPassphraseDialog) {
         AlertDialog(
             onDismissRequest = { showPassphraseDialog = false },
-            title = { Text("输入私钥口令") },
+            title = { Text(stringResource(R.string.detail_pgp_passphrase_title)) },
             text = {
                 OutlinedTextField(
                     value = passphrase,
                     onValueChange = { passphrase = it },
-                    label = { Text("口令") },
+                    label = { Text(stringResource(R.string.detail_pgp_passphrase)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
@@ -284,13 +286,13 @@ fun DetailScreen(
                     showPassphraseDialog = false
                     doDecrypt(passphrase.toCharArray())
                     passphrase = ""
-                }) { Text("解密") }
+                }) { Text(stringResource(R.string.detail_pgp_decrypt)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showPassphraseDialog = false
                     passphrase = ""
-                }) { Text("取消") }
+                }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -299,23 +301,23 @@ fun DetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("邮件详情") },
+                title = { Text(stringResource(R.string.detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { toggleStar() }) {
                         Icon(
                             if (isStarred) Icons.Filled.Star else Icons.Outlined.Star,
-                            contentDescription = "星标",
+                            contentDescription = stringResource(R.string.nav_starred),
                             tint = if (isStarred) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = { showDeleteConfirm = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "删除")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete))
                     }
                 }
             )
@@ -349,14 +351,14 @@ fun DetailScreen(
                             .padding(16.dp)
                     ) {
                         Text(
-                            item.subject?.takeIf { it.isNotBlank() } ?: "(无主题)",
+                            item.subject?.takeIf { it.isNotBlank() } ?: stringResource(R.string.detail_no_subject),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(Modifier.height(8.dp))
-                        DetailField("发件人", item.sendEmail ?: "")
-                        DetailField("收件人", item.toEmail ?: item.recipient ?: "")
+                        DetailField(stringResource(R.string.detail_from), item.sendEmail ?: "")
+                        DetailField(stringResource(R.string.detail_to), item.toEmail ?: item.recipient ?: "")
                         if (!item.createTime.isNullOrBlank()) {
-                            DetailField("时间", item.createTime!!)
+                            DetailField(stringResource(R.string.detail_time), item.createTime!!)
                         }
                         // 对标网页版：加密邮件绿色锁标
                         if (pgpEncrypted) {
@@ -371,7 +373,7 @@ fun DetailScreen(
                                     modifier = Modifier.padding(end = 4.dp)
                                 )
                                 Text(
-                                    "PGP 加密邮件",
+                                    stringResource(R.string.detail_pgp_title),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -381,7 +383,7 @@ fun DetailScreen(
                         if (item.attList.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "附件（${item.attList.size}）",
+                                stringResource(R.string.detail_attachments, item.attList.size),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -414,12 +416,12 @@ fun DetailScreen(
                                     modifier = Modifier.padding(bottom = 16.dp)
                                 )
                                 Text(
-                                    "这封邮件是 PGP 加密的",
+                                    stringResource(R.string.detail_pgp_encrypted),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    "导入对应的私钥后可解密查看",
+                                    stringResource(R.string.detail_pgp_view),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -428,7 +430,7 @@ fun DetailScreen(
                                     onClick = { onDecryptClick() },
                                     enabled = !decrypting
                                 ) {
-                                    Text(if (decrypting) "解密中…" else "解密查看")
+                                    Text(if (decrypting) stringResource(R.string.detail_pgp_decrypting) else stringResource(R.string.detail_pgp_view))
                                 }
                             }
                         }
@@ -517,7 +519,7 @@ private fun AttachmentRow(
         Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                att.filename.ifBlank { "附件" },
+                att.filename.ifBlank { stringResource(R.string.detail_attachment) },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1
             )
@@ -533,7 +535,7 @@ private fun AttachmentRow(
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         } else {
             IconButton(onClick = onDownload) {
-                Icon(Icons.Default.Download, contentDescription = "下载附件")
+                Icon(Icons.Default.Download, contentDescription = stringResource(R.string.detail_download))
             }
         }
     }
