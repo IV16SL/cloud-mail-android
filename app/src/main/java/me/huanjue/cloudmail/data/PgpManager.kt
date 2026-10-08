@@ -330,6 +330,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             val pw = passphrase ?: CharArray(0)
             var lastErr: Exception? = null
             var matchedKey = false
+            var matchedSk: org.bouncycastle.openpgp.PGPSecretKey? = null
             // 收集诊断信息：邮件是加密给哪些 keyID 的，本地有哪些 keyID
             val emailKeyIds = encList.encryptedDataObjects.asSequence()
                 .filterIsInstance<PGPPublicKeyEncryptedData>()
@@ -345,6 +346,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                     .firstOrNull { it.keyID == sk.keyID }
                     ?: continue
                 matchedKey = true
+                matchedSk = sk
                 // 诊断：打印这把钥匙的 S2K 参数（哈希、加密算法、S2K 类型），定位 checksum mismatch 原因
                 try {
                     val s2k = sk.s2K
@@ -377,7 +379,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             val diag = " (email keys: ${emailKeyIds.joinToString(",")}; local keys: ${localKeyIds.joinToString(",")})"
             val errDetail = lastErr?.let { " [${it.javaClass.simpleName}: ${it.message}]" } ?: ""
             val s2kDetail = try {
-                secretKeys.firstOrNull()?.let { sk ->
+                matchedSk?.let { sk ->
                     val s2k = sk.s2K
                     " [s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} enc=${sk.keyEncryptionAlgorithm}]"
                 }
