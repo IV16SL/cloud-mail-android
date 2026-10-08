@@ -66,8 +66,7 @@ import me.huanjue.cloudmail.data.model.EmailItem
 @Composable
 fun MailboxScreen(
     viewModel: MailboxViewModel,
-    currentTab: me.huanjue.cloudmail.ui.home.DrawerDestination,
-    onTabSelect: (me.huanjue.cloudmail.ui.home.DrawerDestination) -> Unit,
+    title: String,
     onMenuClick: () -> Unit,
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit,
     onCompose: () -> Unit
@@ -107,12 +106,7 @@ fun MailboxScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    me.huanjue.cloudmail.ui.home.MailTabs(
-                        current = currentTab,
-                        onSelect = onTabSelect
-                    )
-                },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))

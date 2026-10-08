@@ -136,8 +136,7 @@ fun HomeScreen(
                 val vm = if (destination == DrawerDestination.INBOX) inboxVm else sentVm
                 MailboxScreen(
                     viewModel = vm,
-                    currentTab = destination,
-                    onTabSelect = { destination = it },
+                    title = stringResource(destination.titleRes),
                     onMenuClick = { openDrawer() },
                     onOpenEmail = onOpenEmail,
                     onCompose = { onCompose(null) }
@@ -145,16 +144,12 @@ fun HomeScreen(
             }
             DrawerDestination.STARRED -> {
                 StarredScreen(
-                    currentTab = destination,
-                    onTabSelect = { destination = it },
                     onMenuClick = { openDrawer() },
                     onOpenEmail = onOpenEmail
                 )
             }
             DrawerDestination.DRAFTS -> {
                 DraftsScreen(
-                    currentTab = destination,
-                    onTabSelect = { destination = it },
                     onMenuClick = { openDrawer() },
                     onEditDraft = { draftId -> onCompose(draftId) },
                     onNewDraft = { onCompose(null) }

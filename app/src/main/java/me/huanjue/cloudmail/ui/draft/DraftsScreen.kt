@@ -49,8 +49,6 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DraftsScreen(
-    currentTab: me.huanjue.cloudmail.ui.home.DrawerDestination,
-    onTabSelect: (me.huanjue.cloudmail.ui.home.DrawerDestination) -> Unit,
     onMenuClick: () -> Unit,
     onEditDraft: (draftId: String) -> Unit,
     onNewDraft: () -> Unit
@@ -81,12 +79,7 @@ fun DraftsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    me.huanjue.cloudmail.ui.home.MailTabs(
-                        current = currentTab,
-                        onSelect = onTabSelect
-                    )
-                },
+                title = { Text(stringResource(R.string.drafts_title)) },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))

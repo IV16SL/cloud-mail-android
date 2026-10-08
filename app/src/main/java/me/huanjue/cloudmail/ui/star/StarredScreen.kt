@@ -49,8 +49,6 @@ import me.huanjue.cloudmail.ui.mail.EmailRow
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StarredScreen(
-    currentTab: me.huanjue.cloudmail.ui.home.DrawerDestination,
-    onTabSelect: (me.huanjue.cloudmail.ui.home.DrawerDestination) -> Unit,
     onMenuClick: () -> Unit,
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit
 ) {
@@ -132,12 +130,7 @@ fun StarredScreen(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    me.huanjue.cloudmail.ui.home.MailTabs(
-                        current = currentTab,
-                        onSelect = onTabSelect
-                    )
-                },
+                title = { Text(stringResource(R.string.starred_title)) },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
