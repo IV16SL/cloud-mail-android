@@ -313,7 +313,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                     .firstOrNull { it.keyID == sk.keyID }
                     ?: continue
                 matchedKey = true
-                for (candidate in pwCandidates) {
+                for ((pwIdx, candidate) in pwCandidates.withIndex()) {
                     try {
                         val privateKey = extractPrivateKey(sk, candidate)
                         val clear = encData.getDataStream(
@@ -323,6 +323,11 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                         )
                         return@withContext readLiteral(clear)
                     } catch (e: Exception) {
+                        // 记录详细异常：类名 + message，帮助定位是口令错还是算法不支持
+                        android.util.Log.w(
+                            "PgpManager",
+                            "decrypt failed key=${"%016X".format(sk.keyID)} pwIdx=$pwIdx err=${e.javaClass.simpleName}: ${e.message}"
+                        )
                         lastErr = e
                     }
                 }
