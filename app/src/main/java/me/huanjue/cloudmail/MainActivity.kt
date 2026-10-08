@@ -89,8 +89,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // 开屏时预热：恢复会话（含 detectApiPrefix 网络探测）+ 预读邮件缓存
-        // 这样开屏动画播完时数据已就绪，AppNav 无需再转圈
+        // 开屏时预热：恢复会话（含 detectApiPrefix 网络探测）+ 预读邮件缓存 + 拉 capabilities
+        // 这样开屏动画播完时数据已就绪，AppNav 无需再转圈；capabilities 里有 pgp 开关，
+        // 详情页靠它判断是否显示解密按钮，不预热的话冷启动打开加密邮件只会显示密文
         val app = applicationContext as CloudMailApp
         val startupDone = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
         lifecycleScope.launch {
@@ -107,6 +108,10 @@ class MainActivity : ComponentActivity() {
                         app.container.mailCache.get(account.accountId, 0)
                         app.container.mailCache.get(account.accountId, 1)
                     }
+                } catch (_: Exception) { }
+                // 预热 capabilities（pgp/passkey 开关）
+                try {
+                    app.container.capabilitiesRepository.refresh()
                 } catch (_: Exception) { }
             }
             startupDone.value = ok
