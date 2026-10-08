@@ -15,9 +15,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.ui.graphics.Color
@@ -33,6 +35,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -72,6 +75,15 @@ fun MailboxScreen(
     val listState = rememberLazyListState()
 
     var showAccountMenu by remember { mutableStateOf(false) }
+
+    // 搜索框输入（本地即时状态，防抖逻辑在 ViewModel）
+    var searchText by remember { mutableStateOf("") }
+    // ViewModel 外部清空搜索时（如切换账号），同步清空输入框
+    LaunchedEffect(state.searchKeyword) {
+        if (state.searchKeyword.isEmpty() && searchText.isNotEmpty()) {
+            searchText = ""
+        }
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -131,6 +143,32 @@ fun MailboxScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // 搜索框
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                    viewModel.onSearchInput(it)
+                },
+                placeholder = { Text("搜索主题、发件人") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                },
+                trailingIcon = {
+                    if (searchText.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchText = ""
+                            viewModel.clearSearch()
+                        }) {
+                            Icon(Icons.Default.Clear, contentDescription = "清除")
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
             if (state.isLoading && state.emails.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -154,7 +192,11 @@ fun MailboxScreen(
                 ) {
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("没有邮件", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                if (state.searchKeyword.isNotBlank()) "没有找到相关邮件"
+                                else "没有邮件",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     } else {
                         LazyColumn(
