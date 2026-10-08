@@ -305,22 +305,26 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                 .toList()
             val localKeyIds = secretKeys.map { "%016X".format(it.keyID) }
             // 逐把钥匙试：加密可能用的是子钥匙，不能只认 master key
+            // 口令候选：用户输入的优先，空口令兜底（防止导入时误判保护状态）
+            val pwCandidates = if (pw.isNotEmpty()) listOf(pw, CharArray(0)) else listOf(pw)
             for (sk in secretKeys) {
                 val encData = encList.encryptedDataObjects.asSequence()
                     .filterIsInstance<PGPPublicKeyEncryptedData>()
                     .firstOrNull { it.keyID == sk.keyID }
                     ?: continue
                 matchedKey = true
-                try {
-                    val privateKey = extractPrivateKey(sk, pw)
-                    val clear = encData.getDataStream(
-                        JcePublicKeyDataDecryptorFactoryBuilder()
-                            .setProvider("BC")
-                            .build(privateKey)
-                    )
-                    return@withContext readLiteral(clear)
-                } catch (e: Exception) {
-                    lastErr = e
+                for (candidate in pwCandidates) {
+                    try {
+                        val privateKey = extractPrivateKey(sk, candidate)
+                        val clear = encData.getDataStream(
+                            JcePublicKeyDataDecryptorFactoryBuilder()
+                                .setProvider("BC")
+                                .build(privateKey)
+                        )
+                        return@withContext readLiteral(clear)
+                    } catch (e: Exception) {
+                        lastErr = e
+                    }
                 }
             }
             // 诊断信息：帮助用户判断是钥匙不对还是口令不对
