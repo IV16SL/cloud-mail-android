@@ -97,6 +97,7 @@ fun HomeScreen(
                     onSwitchAccount = { userId ->
                         scope.launch {
                             container.authRepository.switchSession(userId)
+                            container.pgpManager.clearUserIdCache()
                             closeDrawer()
                         }
                     }

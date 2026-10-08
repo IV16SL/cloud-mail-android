@@ -104,8 +104,19 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         )
     }
 
-    private suspend fun activeUserId(): Long =
-        settings.getActiveSession()?.userId ?: 0L
+    private var cachedUserId: Long? = null
+
+    private suspend fun activeUserId(): Long {
+        cachedUserId?.let { if (it != 0L) return it }
+        val uid = settings.getActiveSession()?.userId ?: 0L
+        if (uid != 0L) cachedUserId = uid
+        return uid
+    }
+
+    /** 切换账号/登出时清掉缓存的 userId，下次重新从 DataStore 读 */
+    fun clearUserIdCache() {
+        cachedUserId = null
+    }
 
     private fun armorKey(userId: Long) = "private_key_armor_$userId"
     private fun protectedKey(userId: Long) = "private_key_protected_$userId"
@@ -134,10 +145,10 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         withContext(Dispatchers.IO) {
             val armor = armored.trim()
             require(armor.contains(SECRET_ARMOR_BEGIN)) {
-                "不是有效的 PGP 私钥（缺少 -----BEGIN PGP PRIVATE KEY BLOCK-----）"
+                context.getString(me.huanjue.cloudmail.R.string.pgp_err_invalid_key)
             }
             val keys = parseSecretKeys(armor)
-            require(keys.isNotEmpty()) { "私钥解析失败" }
+            require(keys.isNotEmpty()) { context.getString(me.huanjue.cloudmail.R.string.pgp_err_parse_failed) }
             val master = keys.firstOrNull { it.isMasterKey } ?: keys.first()
             // 导入时试一次空口令，判断这把钥匙是否设了口令（解密时决定要不要弹窗）
             val protected = try {
@@ -177,7 +188,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         keyType: String = "RSA"
     ): Pair<PgpKeyInfo, String> = withContext(Dispatchers.IO) {
         val userId = if (name.isBlank()) email.trim() else "${name.trim()} <${email.trim()}>"
-        if (email.isBlank()) throw PgpException("邮箱不能为空")
+        if (email.isBlank()) throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_email_empty))
 
         val sha1Calc = JcaPGPDigestCalculatorProviderBuilder().build()
             .get(HashAlgorithmTags.SHA1)
@@ -256,12 +267,12 @@ class PgpManager(private val context: Context, private val settings: AppSettings
     suspend fun decrypt(messageOrText: String, passphrase: CharArray?): String =
         withContext(Dispatchers.IO) {
             val armor = extractArmorBlock(messageOrText)
-                ?: throw PgpException("找不到 PGP 密文块")
+                ?: throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_no_ciphertext))
             val keyArmor = encryptedPrefs()
                 .getString(armorKey(activeUserId()), null)
-                ?: throw PgpException("还没有导入 PGP 私钥，请先在设置里导入")
+                ?: throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_no_private_key))
             val secretKeys = parseSecretKeys(keyArmor)
-            if (secretKeys.isEmpty()) throw PgpException("私钥解析失败")
+            if (secretKeys.isEmpty()) throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_parse_failed))
 
             val factory = PGPObjectFactory(
                 ArmoredInputStream(ByteArrayInputStream(armor.toByteArray(Charsets.UTF_8))),
@@ -282,16 +293,24 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                 found
             } catch (_: Exception) {
                 null
-            } ?: throw PgpException("密文格式不对：找不到加密数据包")
+            } ?: throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_bad_format))
 
             val pw = passphrase ?: CharArray(0)
             var lastErr: Exception? = null
+            var matchedKey = false
+            // 收集诊断信息：邮件是加密给哪些 keyID 的，本地有哪些 keyID
+            val emailKeyIds = encList.encryptedDataObjects.asSequence()
+                .filterIsInstance<PGPPublicKeyEncryptedData>()
+                .map { "%016X".format(it.keyID) }
+                .toList()
+            val localKeyIds = secretKeys.map { "%016X".format(it.keyID) }
             // 逐把钥匙试：加密可能用的是子钥匙，不能只认 master key
             for (sk in secretKeys) {
                 val encData = encList.encryptedDataObjects.asSequence()
                     .filterIsInstance<PGPPublicKeyEncryptedData>()
                     .firstOrNull { it.keyID == sk.keyID }
                     ?: continue
+                matchedKey = true
                 try {
                     val privateKey = extractPrivateKey(sk, pw)
                     val clear = encData.getDataStream(
@@ -304,9 +323,11 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                     lastErr = e
                 }
             }
+            // 诊断信息：帮助用户判断是钥匙不对还是口令不对
+            val diag = " (email keys: ${emailKeyIds.joinToString(",")}; local keys: ${localKeyIds.joinToString(",")})"
             throw PgpException(
-                if (lastErr != null) "解密失败：口令不对，或这封邮件不是发给这把钥匙的"
-                else "这封邮件不是用已导入的钥匙加密的",
+                if (!matchedKey) context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_key) + diag
+                else context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_passphrase) + diag,
                 lastErr
             )
         }
@@ -350,7 +371,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         if (obj is PGPCompressedData) {
             obj = PGPObjectFactory(obj.dataStream, JcaKeyFingerprintCalculator()).nextObject()
         }
-        val literal = obj as? PGPLiteralData ?: throw PgpException("密文内容不是文字数据")
+        val literal = obj as? PGPLiteralData ?: throw PgpException(context.getString(me.huanjue.cloudmail.R.string.pgp_err_not_text))
         return literal.inputStream.readBytes().toString(Charsets.UTF_8)
     }
 }
