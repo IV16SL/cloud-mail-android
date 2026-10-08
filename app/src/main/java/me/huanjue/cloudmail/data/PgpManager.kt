@@ -151,11 +151,15 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             require(keys.isNotEmpty()) { context.getString(me.huanjue.cloudmail.R.string.pgp_err_parse_failed) }
             val master = keys.firstOrNull { it.isMasterKey } ?: keys.first()
             // 导入时试一次空口令，判断这把钥匙是否设了口令（解密时决定要不要弹窗）
-            val protected = try {
-                extractPrivateKey(master, CharArray(0))
-                false
-            } catch (_: Exception) {
-                true
+            // 注意：要测所有子钥匙，不能只测 master——加密用的往往是子钥匙，
+            // master 无口令但子钥匙有口令的情况很常见
+            val protected = keys.any { sk ->
+                try {
+                    extractPrivateKey(sk, CharArray(0))
+                    false
+                } catch (_: Exception) {
+                    true
+                }
             }
             val uid = activeUserId()
             encryptedPrefs().edit()
