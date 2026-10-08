@@ -51,11 +51,6 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DraftsScreen(
-    onMenuClick: () -> Unit,
-    onEditDraft: (draftId: String) -> Unit,
-    onNewDraft: () -> Unit
-) {
     val context = LocalContext.current
     val app = context.applicationContext as CloudMailApp
     val draftRepository = app.container.draftRepository
@@ -101,7 +96,6 @@ fun DraftsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 搜索框
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -123,28 +117,25 @@ fun DraftsScreen(
             )
             if (filteredDrafts.isEmpty()) {
                 Box(
-                    Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (searchText.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
+                        text = if (searchText.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
                         else stringResource(R.string.drafts_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                items(filteredDrafts, key = { it.id }) { draft ->
-                    DraftRow(
-                        draft = draft,
-                        onClick = { onEditDraft(draft.id) },
-                        onDelete = {
-                            scope.launch { draftRepository.delete(draft.id) }
-                        }
-                    )
-                    HorizontalDivider()
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(filteredDrafts, key = { it.id }) { draft ->
+                        DraftRow(
+                            draft = draft,
+                            onClick = { onEditDraft(draft.id) },
+                            onDelete = { scope.launch { draftRepository.delete(draft.id) } }
+                        )
+                        HorizontalDivider()
+                    }
                 }
             }
         }
