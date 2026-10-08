@@ -26,6 +26,40 @@ class AppSettings(private val context: Context) {
         private val ACTIVE_USER = longPreferencesKey("active_user_id")
         private val THEME_MODE = stringPreferencesKey("theme_mode")
         private val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        private val LANGUAGE = stringPreferencesKey("language")
+    }
+
+    /** 语言：system（跟随系统，默认）、en、zh、zh-TW、ja、ko */
+    val language: Flow<String> = context.dataStore.data.map { it[LANGUAGE] ?: "system" }
+
+    suspend fun setLanguage(lang: String) {
+        context.dataStore.edit { it[LANGUAGE] = lang }
+    }
+
+    /** 同步读取语言（用于 attachBaseContext，不能用 suspend） */
+    fun getLanguageSync(): String {
+        return try {
+            val prefs = context.getSharedPreferences("cloudmail_prefs_sync", Context.MODE_PRIVATE)
+            prefs.getString("language", null)
+                ?: runBlockingRead()
+        } catch (_: Exception) { "system" }
+    }
+
+    private fun runBlockingRead(): String {
+        return try {
+            kotlinx.coroutines.runBlocking {
+                context.dataStore.data.map { it[LANGUAGE] ?: "system" }.first()
+            }
+        } catch (_: Exception) { "system" }
+    }
+
+    /** 语言变更时同步一份到 SharedPreferences，供 attachBaseContext 快速读取 */
+    suspend fun setLanguageWithSync(lang: String) {
+        setLanguage(lang)
+        try {
+            context.getSharedPreferences("cloudmail_prefs_sync", Context.MODE_PRIVATE)
+                .edit().putString("language", lang).apply()
+        } catch (_: Exception) {}
     }
 
     /** 主题模式：system（跟随系统，默认）、light、dark */
@@ -154,6 +188,14 @@ class AppSettings(private val context: Context) {
     @Deprecated("多账号改用 clearSessions")
     suspend fun clearToken() {
         context.dataStore.edit { it.remove(TOKEN) }
+    }
+
+    /** 非 UI 层（ViewModel/Repository）获取本地化字符串 */
+    fun getString(resId: Int, vararg args: Any): String {
+        return try {
+            if (args.isEmpty()) context.getString(resId)
+            else context.getString(resId, *args)
+        } catch (_: Exception) { "" }
     }
 }
 
