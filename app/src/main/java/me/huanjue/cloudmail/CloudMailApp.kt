@@ -6,6 +6,7 @@ import me.huanjue.cloudmail.data.AppSettings
 import me.huanjue.cloudmail.data.AuthRepository
 import me.huanjue.cloudmail.data.CapabilitiesRepository
 import me.huanjue.cloudmail.data.DraftRepository
+import me.huanjue.cloudmail.data.MailCache
 import me.huanjue.cloudmail.data.MailRepository
 import me.huanjue.cloudmail.data.PgpManager
 
