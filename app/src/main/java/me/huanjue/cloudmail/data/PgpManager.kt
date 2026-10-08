@@ -347,7 +347,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                 matchedKey = true
                 // 诊断：打印这把钥匙的 S2K 参数（哈希、加密算法、S2K 类型），定位 checksum mismatch 原因
                 try {
-                    val s2k = sk.s2k
+                    val s2k = sk.s2K
                     android.util.Log.w(
                         "PgpManager",
                         "key ${"%016X".format(sk.keyID)} s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} encAlg=${sk.keyEncryptionAlgorithm}"
@@ -378,7 +378,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             val errDetail = lastErr?.let { " [${it.javaClass.simpleName}: ${it.message}]" } ?: ""
             val s2kDetail = try {
                 secretKeys.firstOrNull()?.let { sk ->
-                    val s2k = sk.s2k
+                    val s2k = sk.s2K
                     " [s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} enc=${sk.keyEncryptionAlgorithm}]"
                 }
             } catch (_: Exception) { null } ?: ""
