@@ -66,18 +66,10 @@ fun LoginScreen(
     val websiteConfig by viewModel.websiteConfig.collectAsState()
     val loginDone by viewModel.loginDone.collectAsState()
 
-    // 输入框地址变化时实时探测该服务器的 capabilities（添加账号时输入的地址还没保存）
-    var urlCapabilities by remember { mutableStateOf<me.huanjue.cloudmail.data.model.ServerCapabilities?>(null) }
-    LaunchedEffect(serverUrl) {
-        urlCapabilities = if (serverUrl.isNotBlank() && capabilitiesRepository != null) {
-            kotlinx.coroutines.delay(500) // 防抖，等用户输完
-            capabilitiesRepository.fetchForUrl(serverUrl)
-        } else {
-            null
-        }
+    // 进入登录页时刷新 capabilities，确保 passkey 按钮状态最新
+    LaunchedEffect(Unit) {
+        capabilitiesRepository?.refresh()
     }
-    // 有效值：输入框地址的探测结果优先，否则用传入的（已保存地址的）
-    val effectivePasskeySupported = urlCapabilities?.passkey ?: passkeySupported
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -253,13 +245,13 @@ fun LoginScreen(
                     Text(stringResource(R.string.login_title))
                 }
                 // 通行密钥登录（仅后端支持时显示）
-                if (effectivePasskeySupported) {
+                if (passkeySupported) {
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
                         onClick = {
                             val activity = context as? android.app.Activity
                             if (activity != null) {
-                                viewModel.loginPasskey(activity, effectivePasskeySupported)
+                                viewModel.loginPasskey(activity, passkeySupported)
                             }
                         },
                         enabled = state !is LoginUiState.Loading && serverUrl.isNotBlank(),

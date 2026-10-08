@@ -56,40 +56,4 @@ class CapabilitiesRepository(
             fetch(url)
         }
     }
-
-    /**
-     * 为指定 URL 探测 capabilities（不修改共享状态）。
-     * 用于登录/添加账号页：输入框里的地址还没保存，不能依赖 settings.serverUrl。
-     */
-    suspend fun fetchForUrl(url: String): ServerCapabilities {
-        if (url.isBlank()) return ServerCapabilities.UPSTREAM
-        return try {
-            val base = url.trim().trimEnd('/')
-            // 先试 /api 前缀（生产环境），再试根路径
-            for (prefix in listOf("/api", "")) {
-                try {
-                    val req = okhttp3.Request.Builder()
-                        .url("$base$prefix/public/capabilities")
-                        .get()
-                        .build()
-                    okhttp3.OkHttpClient().newCall(req).execute().use { resp ->
-                        if (!resp.isSuccessful) return@use
-                        val body = resp.body?.string() ?: return@use
-                        val json = com.google.gson.Gson().fromJson(body, Map::class.java)
-                        val data = json["data"] as? Map<*, *>
-                        if (data != null) {
-                            return ServerCapabilities(
-                                passkey = data["passkey"] as? Boolean ?: false,
-                                totp = data["totp"] as? Boolean ?: false,
-                                pgp = data["pgp"] as? Boolean ?: false
-                            )
-                        }
-                    }
-                } catch (_: Exception) { /* 试下一个前缀 */ }
-            }
-            ServerCapabilities.UPSTREAM
-        } catch (_: Exception) {
-            ServerCapabilities.UPSTREAM
-        }
-    }
 }
