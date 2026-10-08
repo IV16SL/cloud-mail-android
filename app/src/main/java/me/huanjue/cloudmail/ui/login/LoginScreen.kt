@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fingerprint
@@ -204,12 +203,7 @@ fun LoginScreen(
                         autoCorrectEnabled = false
                     ),
                     singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .autofill(
-                            autofillTypes = listOf(AutofillType.EmailAddress, AutofillType.Username),
-                            onFill = { email = it }
-                        )
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
@@ -222,12 +216,7 @@ fun LoginScreen(
                         autoCorrectEnabled = false
                     ),
                     singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .autofill(
-                            autofillTypes = listOf(AutofillType.Password),
-                            onFill = { password = it }
-                        )
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(
