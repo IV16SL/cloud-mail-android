@@ -117,13 +117,13 @@ object NetworkModule {
             } catch (_: Exception) {
             }
         }
-        throw IllegalStateException("连接不到服务器的 API，请检查地址是否正确")
+        throw kotlin.IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_connect_server))
     }
 }
 
 /** 解包统一响应体：code != 200 抛 ApiException */
 suspend fun <T> unwrap(call: suspend () -> ApiResponse<T>): T {
     val resp = call()
-    if (!resp.isOk) throw ApiException(resp.code, resp.message ?: "请求失败")
+    if (!resp.isOk) throw ApiException(resp.code, resp.message ?: me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_request_failed))
     return resp.data as T
 }
