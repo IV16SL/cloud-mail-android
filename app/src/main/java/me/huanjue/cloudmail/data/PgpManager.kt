@@ -383,7 +383,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             val s2kDetail = try {
                 matchedSk?.let { sk ->
                     val s2k = sk.s2K
-                    " [s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} enc=${sk.keyEncryptionAlgorithm}]"
+                    " [s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} enc=${sk.keyEncryptionAlgorithm} pwLen=${pw.size}]"
                 }
             } catch (_: Exception) { null } ?: ""
             throw PgpException(
