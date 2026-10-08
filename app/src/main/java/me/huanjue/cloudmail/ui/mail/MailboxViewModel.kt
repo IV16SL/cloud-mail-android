@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.AppSettings
+import me.huanjue.cloudmail.data.MailCache
 import me.huanjue.cloudmail.data.MailRepository
 import me.huanjue.cloudmail.data.model.ApiException
 import me.huanjue.cloudmail.data.model.EmailItem
@@ -32,6 +33,7 @@ data class MailboxUiState(
 class MailboxViewModel(
     private val mailRepository: MailRepository,
     private val settings: AppSettings,
+    private val mailCache: MailCache,
     initialType: Int = 0
 ) : ViewModel() {
 
@@ -44,7 +46,23 @@ class MailboxViewModel(
     private val _searchInput = MutableStateFlow("")
 
     init {
-        refresh()
+        // 冷启动：先读缓存秒开，再后台静默拉取最新
+        viewModelScope.launch {
+            val cached = loadCached()
+            if (cached != null) {
+                _uiState.value = _uiState.value.copy(
+                    accounts = cached.first,
+                    currentAccount = cached.second,
+                    emails = cached.third,
+                    isLoading = false,
+                    hasMore = cached.third.size >= pageSize
+                )
+                // 后台静默刷新，无感知更新
+                refresh(silent = true)
+            } else {
+                refresh()
+            }
+        }
         // 切换登录账号后清空重载（新账号的邮箱账号/邮件都不同）
         viewModelScope.launch {
             settings.activeSession
@@ -83,9 +101,24 @@ class MailboxViewModel(
         refresh()
     }
 
-    fun refresh() {
+    /** 从缓存读账号+邮件头（冷启动秒开用） */
+    private suspend fun loadCached(): Triple<List<MailAccount>, MailAccount?, List<EmailItem>>? {
+        return try {
+            val accounts = mailRepository.accounts()
+            val account = accounts.firstOrNull() ?: return null
+            val emails = mailCache.get(account.accountId, _uiState.value.type)
+                ?: return null
+            Triple(accounts, account, emails)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun refresh(silent: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            if (!silent) {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            }
             try {
                 val accounts = mailRepository.accounts()
                 val account = _uiState.value.currentAccount
@@ -99,18 +132,22 @@ class MailboxViewModel(
                         keyword = keyword
                     ).list ?: emptyList()
                 } else emptyList()
+                // 非搜索时写缓存（搜索结果不缓存）
+                if (keyword == null && account != null) {
+                    mailCache.put(account.accountId, _uiState.value.type, emails)
+                }
                 _uiState.value = _uiState.value.copy(
                     accounts = accounts,
                     currentAccount = account,
                     emails = emails,
                     isLoading = false,
                     hasMore = emails.size >= pageSize,
-                    error = if (account == null) "还没有邮箱账号" else null
+                    error = if (account == null) settings.getString(me.huanjue.cloudmail.R.string.mailbox_no_account) else null
                 )
             } catch (e: ApiException) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "网络错误：${e.message}")
+                _uiState.value = _uiState.value.copy(isLoading = false, error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
             }
         }
     }
@@ -154,7 +191,7 @@ class MailboxViewModel(
             } catch (e: ApiException) {
                 _uiState.value = _uiState.value.copy(isLoadingMore = false, error = e.message)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoadingMore = false, error = "网络错误：${e.message}")
+                _uiState.value = _uiState.value.copy(isLoadingMore = false, error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
             }
         }
     }
@@ -185,7 +222,7 @@ class MailboxViewModel(
             } catch (e: ApiException) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "网络错误：${e.message}")
+                _uiState.value = _uiState.value.copy(error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
             }
         }
     }
@@ -215,7 +252,7 @@ class MailboxViewModel(
                     emails = _uiState.value.emails.map {
                         if (it.emailId == email.emailId) it.copy(isStar = email.isStar) else it
                     },
-                    error = "网络错误：${e.message}"
+                    error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: "")
                 )
             }
         }

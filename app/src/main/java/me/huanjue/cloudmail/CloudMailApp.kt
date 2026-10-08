@@ -53,6 +53,7 @@ class AppContainer(context: android.content.Context) {
     val settings = AppSettings(context.applicationContext)
     val authRepository = AuthRepository(settings)
     val mailRepository = MailRepository()
+    val mailCache = MailCache(context.applicationContext)
     val draftRepository = DraftRepository(context.applicationContext)
     val pgpManager = PgpManager(context.applicationContext, settings)
     val capabilitiesRepository = CapabilitiesRepository(settings)

@@ -27,7 +27,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.huanjue.cloudmail.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.huanjue.cloudmail.CloudMailApp
 import androidx.compose.ui.platform.LocalContext
@@ -39,13 +41,13 @@ import me.huanjue.cloudmail.ui.star.StarredScreen
 import kotlinx.coroutines.launch
 
 enum class DrawerDestination(
-    val title: String,
+    @androidx.annotation.StringRes val titleRes: Int,
     val icon: ImageVector
 ) {
-    INBOX("收件箱", Icons.Default.Inbox),
-    SENT("已发送", Icons.AutoMirrored.Filled.Send),
-    STARRED("星标", Icons.Default.Star),
-    DRAFTS("草稿箱", Icons.Default.Description)
+    INBOX(R.string.nav_inbox, Icons.Default.Inbox),
+    SENT(R.string.nav_sent, Icons.AutoMirrored.Filled.Send),
+    STARRED(R.string.nav_starred, Icons.Default.Star),
+    DRAFTS(R.string.nav_drafts, Icons.Default.Description)
 }
 
 /** 左侧抽屉导航（对标网页版侧边栏） */
@@ -71,11 +73,11 @@ fun HomeScreen(
     // 两个邮箱 VM 都提升到这里：切换抽屉时复用；发信成功后能直接刷新已发送
     val inboxVm: MailboxViewModel = viewModel(
         key = "mailbox_0",
-        factory = VmFactory { MailboxViewModel(container.mailRepository, container.settings, 0) }
+        factory = VmFactory { MailboxViewModel(container.mailRepository, container.settings, container.mailCache, 0) }
     )
     val sentVm: MailboxViewModel = viewModel(
         key = "mailbox_1",
-        factory = VmFactory { MailboxViewModel(container.mailRepository, container.settings, 1) }
+        factory = VmFactory { MailboxViewModel(container.mailRepository, container.settings, container.mailCache, 1) }
     )
 
     // 写信页发送成功后带回来的刷新信号
@@ -103,7 +105,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
                 DrawerDestination.values().forEach { d ->
                     NavigationDrawerItem(
-                        label = { Text(d.title) },
+                        label = { Text(stringResource(d.titleRes)) },
                         icon = { Icon(d.icon, contentDescription = null) },
                         selected = d == destination,
                         onClick = {
@@ -117,7 +119,7 @@ fun HomeScreen(
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
                 NavigationDrawerItem(
-                    label = { Text("设置") },
+                    label = { Text(stringResource(R.string.nav_settings)) },
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     selected = false,
                     onClick = {
@@ -134,7 +136,7 @@ fun HomeScreen(
                 val vm = if (destination == DrawerDestination.INBOX) inboxVm else sentVm
                 MailboxScreen(
                     viewModel = vm,
-                    title = destination.title,
+                    title = stringResource(destination.titleRes),
                     onMenuClick = { openDrawer() },
                     onOpenEmail = onOpenEmail,
                     onCompose = { onCompose(null) }
