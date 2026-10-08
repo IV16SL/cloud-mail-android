@@ -70,19 +70,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         // 系统开屏直接做圆扩散转场：0.6s 停留后从中心向外扩散 0.5s 揭开主界面
-        splashScreen.setOnExitAnimationListener { splashScreenView ->
-            val cx = splashScreenView.width / 2f
-            val cy = splashScreenView.height / 2f
+        splashScreen.setOnExitAnimationListener { provider ->
+            val splashView = provider.view
+            val cx = splashView.width / 2f
+            val cy = splashView.height / 2f
             val finalRadius = kotlin.math.hypot(cx.toDouble(), cy.toDouble()).toFloat()
             val reveal = android.view.ViewAnimationUtils.createCircularReveal(
-                splashScreenView, cx.toInt(), cy.toInt(), 0f, finalRadius
+                splashView, cx.toInt(), cy.toInt(), 0f, finalRadius
             ).apply {
                 duration = 500
                 interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-                doOnEnd { splashScreenView.remove() }
+                doOnEnd { provider.remove() }
             }
             // 停留 0.6s 后开始扩散
-            splashScreenView.postDelayed({ reveal.start() }, 600)
+            splashView.postDelayed({ reveal.start() }, 600)
         }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
