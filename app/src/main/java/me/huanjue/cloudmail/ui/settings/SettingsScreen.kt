@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -87,7 +88,7 @@ fun SettingsScreen(
                         // 换服务器 = 换账号，必须重登
                         onLogout()
                     } catch (e: Exception) {
-                        scope.launch { snackBarHostState.showSnackbar("保存失败：${e.message}") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_save_failed, e.message ?: "")) }
                     }
                 }
             }
@@ -97,8 +98,8 @@ fun SettingsScreen(
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("退出登录") },
-            text = { Text("确定要退出当前账号吗？") },
+            title = { Text(stringResource(R.string.settings_logout_title)) },
+            text = { Text(stringResource(R.string.settings_logout_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     showLogoutConfirm = false
@@ -106,10 +107,10 @@ fun SettingsScreen(
                         val hasMore = container.authRepository.logout()
                         if (hasMore) onBack() else onLogout()
                     }
-                }) { Text("退出") }
+                }) { Text(stringResource(R.string.settings_logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) { Text("取消") }
+                TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -118,10 +119,10 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -133,16 +134,15 @@ fun SettingsScreen(
                 .padding(padding)
         ) {
             ListItem(
-                headlineContent = { Text("服务器地址") },
+                headlineContent = { Text(stringResource(R.string.settings_server)) },
                 supportingContent = { Text(serverUrl ?: "") },
                 leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
                 modifier = Modifier.clickable { showServerDialog = true }
             )
             HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
             // 主题
             Text(
-                "外观",
+                stringResource(R.string.settings_appearance),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -150,12 +150,12 @@ fun SettingsScreen(
             val themeMode by container.settings.themeMode.collectAsState(initial = "system")
             var showThemeDialog by remember { mutableStateOf(false) }
             ListItem(
-                headlineContent = { Text("主题") },
+                headlineContent = { Text(stringResource(R.string.settings_theme)) },
                 supportingContent = { Text(
                     when (themeMode) {
-                        "light" -> "浅色"
-                        "dark" -> "深色"
-                        else -> "跟随系统"
+                        "light" -> stringResource(R.string.settings_theme_light)
+                        "dark" -> stringResource(R.string.settings_theme_dark)
+                        else -> stringResource(R.string.settings_theme_system)
                     }
                 ) },
                 leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
@@ -164,10 +164,10 @@ fun SettingsScreen(
             if (showThemeDialog) {
                 AlertDialog(
                     onDismissRequest = { showThemeDialog = false },
-                    title = { Text("选择主题") },
+                    title = { Text(stringResource(R.string.settings_choose_theme)) },
                     text = {
                         Column {
-                            listOf("system" to "跟随系统", "light" to "浅色", "dark" to "深色").forEach { (value, label) ->
+                            listOf("system" to context.getString(R.string.settings_theme_system), "light" to context.getString(R.string.settings_theme_light), "dark" to context.getString(R.string.settings_theme_dark)).forEach { (value, label) ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -202,8 +202,8 @@ fun SettingsScreen(
             // 主题色跟随系统（Material You 动态取色）
             val dynamicColor by container.settings.dynamicColor.collectAsState(initial = false)
             ListItem(
-                headlineContent = { Text("主题色跟随系统") },
-                supportingContent = { Text("开启后使用壁纸取色（Android 12+），关闭则用图标蓝") },
+                headlineContent = { Text(stringResource(R.string.settings_dynamic_color)) },
+                supportingContent = { Text(stringResource(R.string.settings_dynamic_color_desc)) },
                 leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
                 trailingContent = {
                     Switch(
@@ -218,17 +218,86 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             Spacer(Modifier.height(8.dp))
+            // 语言
+            val language by container.settings.language.collectAsState(initial = "system")
+            var showLangDialog by remember { mutableStateOf(false) }
+            // 需要 Activity 引用来 recreate
+            val activity = context as? android.app.Activity
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_language)) },
+                supportingContent = { Text(
+                    when (language) {
+                        "en" -> "English"
+                        "zh" -> "简体中文"
+                        "zh-TW" -> "繁體中文"
+                        "ja" -> "日本語"
+                        "ko" -> "한국어"
+                        else -> stringResource(R.string.settings_lang_system)
+                    }
+                ) },
+                leadingContent = { Icon(Icons.Default.Language, contentDescription = null) },
+                modifier = Modifier.clickable { showLangDialog = true }
+            )
+            if (showLangDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLangDialog = false },
+                    title = { Text(stringResource(R.string.settings_choose_language)) },
+                    text = {
+                        Column {
+                            listOf(
+                                "system" to stringResource(R.string.settings_lang_system),
+                                "en" to "English",
+                                "zh" to "简体中文",
+                                "zh-TW" to "繁體中文",
+                                "ja" to "日本語",
+                                "ko" to "한국어"
+                            ).forEach { (value, label) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            scope.launch {
+                                                container.settings.setLanguageWithSync(value)
+                                                showLangDialog = false
+                                                // 切换语言后重建 Activity 生效
+                                                activity?.recreate()
+                                            }
+                                        }
+                                        .padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = language == value,
+                                        onClick = {
+                                            scope.launch {
+                                                container.settings.setLanguageWithSync(value)
+                                                showLangDialog = false
+                                                activity?.recreate()
+                                            }
+                                        }
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(label)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {}
+                )
+            }
+            HorizontalDivider()
+            Spacer(Modifier.height(8.dp))
             // PGP 统一入口：总开关 + 私钥管理（仅后端支持时显示）
             if (capabilities.pgp) {
                 Text(
-                    "PGP 加密",
+                    stringResource(R.string.settings_pgp),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
                 ListItem(
-                    headlineContent = { Text("启用 PGP") },
-                    supportingContent = { Text("关闭后隐藏写信页 PGP 开关与解密入口") },
+                    headlineContent = { Text(stringResource(R.string.settings_pgp_enable)) },
+                    supportingContent = { Text(stringResource(R.string.settings_pgp_enable_desc)) },
                     leadingContent = { Icon(Icons.Default.Lock, contentDescription = null) },
                     trailingContent = {
                         Switch(
@@ -244,8 +313,8 @@ fun SettingsScreen(
                 )
                 HorizontalDivider()
                 ListItem(
-                    headlineContent = { Text("PGP 私钥") },
-                    supportingContent = { Text("导入 / 生成私钥以解密收到的加密邮件") },
+                    headlineContent = { Text(stringResource(R.string.settings_pgp_key)) },
+                    supportingContent = { Text(stringResource(R.string.settings_pgp_key_desc)) },
                     leadingContent = { Icon(Icons.Default.VpnKey, contentDescription = null) },
                     modifier = Modifier.clickable { onPgpKey() }
                 )
@@ -253,7 +322,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
             }
             ListItem(
-                headlineContent = { Text("退出登录") },
+                headlineContent = { Text(stringResource(R.string.settings_logout_title)) },
                 leadingContent = {
                     Icon(
                         Icons.AutoMirrored.Filled.ExitToApp,
