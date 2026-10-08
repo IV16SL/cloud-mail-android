@@ -65,13 +65,23 @@ class PgpManager(private val context: Context, private val settings: AppSettings
 
         init {
             // Android 自带一个阉割版 BC（同名 "BC"），把完整版插到第 1 位盖住它，
-            // 否则 JcePBESecretKeyDecryptorBuilder 等会解析到系统阉割版而缺算法。
-            if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
-                !is BouncyCastleProvider
+            // 否则 JcePBESecretKeyDecryptorBuilder 等会解析到系统阉割版而缺算法（如 SHA1）。
+            // 注意：不能只检查 !is BouncyCastleProvider，因为系统阉割版的类名也可能叫 BouncyCastleProvider，
+            // 必须确保我们 jar 里的完整版在第 1 位。
+            val existing = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
+            if (existing == null || existing.javaClass.name != BouncyCastleProvider::class.java.name ||
+                existing::class.java.classLoader != BouncyCastleProvider::class.java.classLoader
             ) {
+                // 移除已有的（可能是系统阉割版），再插入完整版到第 1 位
+                if (existing != null) Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
                 Security.insertProviderAt(BouncyCastleProvider(), 1)
             }
         }
+
+        /** 拿到我们 jar 里的完整版 BC Provider 实例，避免 setProvider("BC") 解析到系统阉割版 */
+        fun bcProvider(): java.security.Provider =
+            Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
+                ?: BouncyCastleProvider().also { Security.insertProviderAt(it, 1) }
 
         /** 文本里是否包含 PGP 密文（列表页绿锁判断用） */
         fun containsEncryptedData(text: String?): Boolean =
@@ -240,7 +250,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         }
         val encryptor = JcePBESecretKeyEncryptorBuilder(
             PGPEncryptedData.AES_256, sha1Calc
-        ).setProvider("BC").build(passphrase?.takeIf { it.isNotEmpty() } ?: CharArray(0))
+        ).setProvider(bcProvider()).build(passphrase?.takeIf { it.isNotEmpty() } ?: CharArray(0))
 
         val keyRingGen = PGPKeyRingGenerator(
             PGPSignature.POSITIVE_CERTIFICATION,
@@ -250,7 +260,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             null, null,
             JcaPGPContentSignerBuilder(
                 signingKeyPair.publicKey.algorithm, HashAlgorithmTags.SHA256
-            ).setProvider("BC"),
+            ).setProvider(bcProvider()),
             encryptor
         )
         keyRingGen.addSubKey(encryptionKeyPair)
@@ -340,7 +350,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                         val privateKey = extractPrivateKey(sk, candidate)
                         val clear = encData.getDataStream(
                             JcePublicKeyDataDecryptorFactoryBuilder()
-                                .setProvider("BC")
+                                .setProvider(bcProvider())
                                 .build(privateKey)
                         )
                         return@withContext readLiteral(clear)
@@ -388,7 +398,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         passphrase: CharArray
     ): PGPPrivateKey =
         secretKey.extractPrivateKey(
-            JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase)
+            JcePBESecretKeyDecryptorBuilder().setProvider(bcProvider()).build(passphrase)
         )
 
     private fun keyInfoOf(key: PGPSecretKey): PgpKeyInfo {
