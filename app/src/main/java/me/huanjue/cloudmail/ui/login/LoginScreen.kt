@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -23,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -44,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import me.huanjue.cloudmail.R
@@ -54,9 +51,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    capabilitiesRepository: me.huanjue.cloudmail.data.CapabilitiesRepository? = null,
     isAddMode: Boolean = false,
-    passkeySupported: Boolean = false,
     onLoginSuccess: () -> Unit,
     onBack: () -> Unit = {}
 ) {
@@ -64,11 +59,6 @@ fun LoginScreen(
     val serverUrl by viewModel.serverUrl.collectAsState()
     val websiteConfig by viewModel.websiteConfig.collectAsState()
     val loginDone by viewModel.loginDone.collectAsState()
-
-    // 进入登录页时刷新 capabilities，确保 passkey 按钮状态最新
-    LaunchedEffect(Unit) {
-        capabilitiesRepository?.refresh()
-    }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -78,7 +68,6 @@ fun LoginScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(loginDone) {
         if (loginDone) {
@@ -112,7 +101,7 @@ fun LoginScreen(
                     if (ok) {
                         showServerDialog = false
                     } else {
-                        scope.launch { snackbarHostState.showSnackbar(err ?: context.getString(R.string.common_save_failed)) }
+                        scope.launch { snackbarHostState.showSnackbar(err ?: "保存失败") }
                     }
                 }
             }
@@ -123,13 +112,13 @@ fun LoginScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (isAddMode) stringResource(R.string.login_add_account) else websiteConfig?.title ?: "Cloud Mail") },
+                title = { Text(if (isAddMode) "添加账号" else websiteConfig?.title ?: "Cloud Mail") },
                 navigationIcon = {
                     if (isAddMode) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.back)
+                                contentDescription = "返回"
                             )
                         }
                     }
@@ -138,7 +127,7 @@ fun LoginScreen(
                     // 添加账号模式下服务器已确定，不显示服务器设置
                     if (!isAddMode) {
                         IconButton(onClick = { showServerDialog = true }) {
-                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.login_server_settings))
+                            Icon(Icons.Default.Settings, contentDescription = "服务器设置")
                         }
                     }
                 }
@@ -155,14 +144,14 @@ fun LoginScreen(
         ) {
             val state = uiState
             if (state is LoginUiState.NeedTotp) {
-                Text(stringResource(R.string.login_2fa_title), style = MaterialTheme.typography.headlineSmall)
+                Text("两步验证", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.login_totp_hint))
+                Text("请输入验证器 App 中的 6 位验证码")
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = totpCode,
                     onValueChange = { totpCode = it },
-                    label = { Text(stringResource(R.string.login_totp_code)) },
+                    label = { Text("验证码") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -173,23 +162,23 @@ fun LoginScreen(
                     enabled = totpCode.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(stringResource(R.string.login_totp_verify))
+                    Text("验证并登录")
                 }
             } else {
                 Image(
                     painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = stringResource(R.string.login_app_icon),
+                    contentDescription = "App 图标",
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                 )
                 Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineSmall)
+                Text("登录", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(8.dp))
                 if (serverUrl.isBlank()) {
                     Text(
-                        context.getString(R.string.login_need_server),
+                        "请先点右上角设置填写服务器地址",
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(Modifier.height(8.dp))
@@ -197,7 +186,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.login_email)) },
+                    label = { Text("邮箱") },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         autoCorrectEnabled = false
@@ -209,7 +198,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.login_password)) },
+                    label = { Text("密码") },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -231,28 +220,7 @@ fun LoginScreen(
                             strokeWidth = 2.dp
                         )
                     }
-                    Text(stringResource(R.string.login_title))
-                }
-                // 通行密钥登录（仅后端支持时显示）
-                if (passkeySupported) {
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = {
-                            val activity = context as? android.app.Activity
-                            if (activity != null) {
-                                viewModel.loginPasskey(activity, passkeySupported)
-                            }
-                        },
-                        enabled = state !is LoginUiState.Loading && serverUrl.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            Icons.Default.Fingerprint,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(stringResource(R.string.login_passkey))
-                    }
+                    Text("登录")
                 }
             }
         }
@@ -268,16 +236,16 @@ fun ServerUrlDialog(
     var input by remember { mutableStateOf(current) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.login_server_title)) },
+        title = { Text("服务器地址") },
         text = {
             Column {
-                Text(stringResource(R.string.login_server_hint))
+                Text("填写你部署的 cloud-mail 地址，所有接口都走这个地址。")
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
-                    label = { Text(stringResource(R.string.login_server_title)) },
-                    placeholder = { Text(stringResource(R.string.login_server_placeholder)) },
+                    label = { Text("服务器地址") },
+                    placeholder = { Text("https://mail.example.com") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -285,10 +253,10 @@ fun ServerUrlDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(input) }) { Text(stringResource(R.string.common_save)) }
+            TextButton(onClick = { onSave(input) }) { Text("保存") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+            TextButton(onClick = onDismiss) { Text("取消") }
         }
     )
 }

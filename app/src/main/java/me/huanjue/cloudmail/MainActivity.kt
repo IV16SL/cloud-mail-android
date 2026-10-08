@@ -1,6 +1,5 @@
 package me.huanjue.cloudmail
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -58,14 +57,6 @@ object Routes {
 }
 
 class MainActivity : ComponentActivity() {
-    override fun attachBaseContext(newBase: Context) {
-        val lang = try {
-            newBase.getSharedPreferences("cloudmail_prefs_sync", Context.MODE_PRIVATE)
-                .getString("language", "system") ?: "system"
-        } catch (_: Exception) { "system" }
-        super.attachBaseContext(me.huanjue.cloudmail.ui.theme.LocaleHelper.wrap(newBase, lang))
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
@@ -170,12 +161,9 @@ fun AppNav() {
                     LoginViewModel(container.authRepository, container.settings)
                 }
             )
-            val capabilities by container.capabilitiesRepository.capabilities.collectAsState()
             LoginScreen(
                 viewModel = vm,
-                capabilitiesRepository = container.capabilitiesRepository,
                 isAddMode = addMode,
-                passkeySupported = capabilities.passkey,
                 onLoginSuccess = {
                     if (addMode) {
                         // 添加账号：直接返回主页（新账号已自动设为活动）
