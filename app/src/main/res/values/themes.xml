@@ -1,7 +1,8 @@
 <resources>
-    <!-- 开屏主题：纯色背景，图标由 Compose 自定义开屏绘制，避免双重图标 -->
+    <!-- 开屏主题：系统 SplashScreen，图标 + 纯色背景 -->
     <style name="Theme.CloudMail" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="windowSplashScreenAnimationDuration">300</item>
         <item name="postSplashScreenTheme">@style/Theme.CloudMail.Main</item>
     </style>
