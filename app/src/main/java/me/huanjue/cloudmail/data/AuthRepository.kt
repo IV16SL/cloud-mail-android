@@ -1,5 +1,6 @@
 package me.huanjue.cloudmail.data
 
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import me.huanjue.cloudmail.data.api.NetworkModule
 import me.huanjue.cloudmail.data.api.unwrap
@@ -19,6 +20,7 @@ sealed interface LoginResult {
 class AuthRepository(private val settings: AppSettings) {
 
     private val api get() = NetworkModule.api
+    private val gson = Gson()
 
     val sessions: Flow<List<UserSession>> = settings.sessions
     val activeSession: Flow<UserSession?> = settings.activeSession
@@ -29,14 +31,43 @@ class AuthRepository(private val settings: AppSettings) {
         if (data.needTotp == true && data.preAuthToken != null) {
             return LoginResult.NeedTotp(data.preAuthToken)
         }
-        val token = data.token ?: throw IllegalStateException("登录返回缺少 token")
+        val token = data.token ?: throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_login_no_token))
         return finishLogin(token)
     }
 
     /** TOTP 登录第二步 */
     suspend fun loginTotp(preAuthToken: String, code: String): LoginResult {
         val data: LoginData = unwrap { api.loginTotp(TotpLoginRequest(preAuthToken, code = code)) }
-        val token = data.token ?: throw IllegalStateException("登录返回缺少 token")
+        val token = data.token ?: throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_login_no_token))
+        return finishLogin(token)
+    }
+
+    /**
+     * 通行密钥（Passkey）登录。
+     * @param getAssertion 由调用方用 Credential Manager 获取凭证：
+     *   传入服务端下发的 PublicKeyCredentialRequestOptions JSON，
+     *   返回凭证的 authenticationResponseJson
+     */
+    suspend fun loginPasskey(
+        getAssertion: suspend (requestJson: String) -> String
+    ): LoginResult {
+        // 1. 拿 challenge（服务端同时返回 challengeId 用于校验）
+        val optionsData: PasskeyLoginOptionsData = unwrap { api.passkeyLoginOptions() }
+        val challengeId = optionsData.challengeId
+            ?: throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_no_challenge_id))
+        val options = optionsData.options
+            ?: throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_no_options))
+        // 2. options 转 JSON 给 Credential Manager
+        val requestJson = gson.toJson(options)
+        // 3. Credential Manager 获取凭证（调用方实现，抛异常则直接向上传）
+        val assertionJson = getAssertion(requestJson)
+        // 4. 解析为 Map 发给服务端校验
+        @Suppress("UNCHECKED_CAST")
+        val responseMap = gson.fromJson(assertionJson, Map::class.java) as Map<String, Any?>
+        val data: LoginData = unwrap {
+            api.passkeyLoginVerify(PasskeyLoginVerifyRequest(responseMap, challengeId))
+        }
+        val token = data.token ?: throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_login_no_token))
         return finishLogin(token)
     }
 

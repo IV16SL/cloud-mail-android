@@ -67,7 +67,7 @@ class LoginViewModel(
 
     fun saveServerUrl(input: String, onResult: (Boolean, String?) -> Unit) {
         if (!isValidServerUrl(input)) {
-            onResult(false, "地址格式不对，要以 https:// 开头")
+            onResult(false, settings.getString(me.huanjue.cloudmail.R.string.login_server_invalid))
             return
         }
         viewModelScope.launch {
@@ -90,7 +90,7 @@ class LoginViewModel(
 
     fun login(email: String, password: String) {
         if (_serverUrl.value.isBlank()) {
-            _uiState.value = LoginUiState.Error("请先点右上角设置填写服务器地址")
+            _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_need_server))
             return
         }
         _uiState.value = LoginUiState.Loading
@@ -103,7 +103,7 @@ class LoginViewModel(
             } catch (e: ApiException) {
                 _uiState.value = LoginUiState.Error(e.message)
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error("网络错误：${e.message}")
+                _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
             }
         }
     }
@@ -117,7 +117,47 @@ class LoginViewModel(
             } catch (e: ApiException) {
                 _uiState.value = LoginUiState.Error(e.message)
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error("网络错误：${e.message}")
+                _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
+            }
+        }
+    }
+
+    /**
+     * 通行密钥登录。
+     * @param activity 用于弹出 Credential Manager 系统界面的 Activity
+     * @param capabilitiesPasskey 服务端是否支持 passkey（由界面层传入）
+     */
+    fun loginPasskey(activity: android.app.Activity, capabilitiesPasskey: Boolean) {
+        if (!capabilitiesPasskey) {
+            _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_passkey_unsupported))
+            return
+        }
+        if (_serverUrl.value.isBlank()) {
+            _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_need_server))
+            return
+        }
+        _uiState.value = LoginUiState.Loading
+        viewModelScope.launch {
+            try {
+                val result = authRepository.loginPasskey { requestJson ->
+                    PasskeyHelper.getAssertion(activity, requestJson)
+                }
+                when (result) {
+                    is LoginResult.Success -> _loginDone.value = true
+                    is LoginResult.NeedTotp -> _uiState.value =
+                        LoginUiState.NeedTotp(result.preAuthToken)
+                }
+            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                // 用户主动取消，不打扰
+                _uiState.value = LoginUiState.Idle
+            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+                _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_passkey_none))
+            } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_passkey_unavailable, e.message ?: ""))
+            } catch (e: ApiException) {
+                _uiState.value = LoginUiState.Error(e.message)
+            } catch (e: Exception) {
+                _uiState.value = LoginUiState.Error(settings.getString(me.huanjue.cloudmail.R.string.login_passkey_failed, e.message ?: ""))
             }
         }
     }

@@ -33,6 +33,18 @@ data class TotpLoginRequest(
     val recoveryCode: String? = null
 )
 
+/** POST /passkey/login/options 返回：WebAuthn 请求选项 + challengeId */
+data class PasskeyLoginOptionsData(
+    val options: Map<String, Any?>? = null,
+    val challengeId: String? = null
+)
+
+/** POST /passkey/login/verify 请求体 */
+data class PasskeyLoginVerifyRequest(
+    val response: Map<String, Any?>,
+    val challengeId: String
+)
+
 data class RegisterRequest(
     val email: String,
     val password: String,

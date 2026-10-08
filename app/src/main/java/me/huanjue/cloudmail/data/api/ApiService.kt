@@ -78,6 +78,14 @@ interface ApiService {
     @DELETE("star/cancel")
     suspend fun starCancel(@Query("emailId") emailId: Long): ApiResponse<Any>
 
+    // ---------- 通行密钥（Passkey）登录 ----------
+
+    @POST("passkey/login/options")
+    suspend fun passkeyLoginOptions(): ApiResponse<PasskeyLoginOptionsData>
+
+    @POST("passkey/login/verify")
+    suspend fun passkeyLoginVerify(@Body body: PasskeyLoginVerifyRequest): ApiResponse<LoginData>
+
     // ---------- PGP ----------
 
     /** 查收件人公钥状态（服务端经 WKD → keys.openpgp.org 探测） */

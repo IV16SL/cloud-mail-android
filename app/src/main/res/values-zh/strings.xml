@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cloud Mail</string>
+
+    <!-- 导航 -->
+    <string name="nav_inbox">收件箱</string>
+    <string name="nav_sent">已发送</string>
+    <string name="nav_starred">星标</string>
+    <string name="nav_drafts">草稿箱</string>
+    <string name="nav_settings">设置</string>
+    <string name="menu">菜单</string>
+    <string name="back">返回</string>
+
+    <!-- 通用 -->
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm">确定</string>
+    <string name="common_save">保存</string>
+    <string name="common_delete">删除</string>
+    <string name="common_close">关闭</string>
+    <string name="common_send">发送</string>
+    <string name="common_loading">加载中…</string>
+    <string name="common_network_error">网络错误：%1$s</string>
+
+    <!-- 登录 -->
+    <string name="login_title">登录</string>
+    <string name="login_add_account">添加账号</string>
+    <string name="login_email">邮箱</string>
+    <string name="login_password">密码</string>
+    <string name="login_button">登录</string>
+    <string name="login_totp_title">两步验证</string>
+    <string name="login_totp_hint">请输入验证器 App 中的 6 位验证码</string>
+    <string name="login_totp_code">验证码</string>
+    <string name="login_totp_verify">验证并登录</string>
+    <string name="login_need_server">请先点右上角设置填写服务器地址</string>
+    <string name="login_server_title">服务器地址</string>
+    <string name="login_server_hint">填写你部署的 cloud-mail 地址，所有接口都走这个地址。</string>
+    <string name="login_server_label">服务器地址</string>
+    <string name="login_server_placeholder">https://mail.example.com</string>
+    <string name="login_server_save">保存</string>
+    <string name="login_server_saved">保存成功</string>
+    <string name="login_server_save_failed">保存失败</string>
+    <string name="login_server_invalid">地址格式不对，要以 https:// 开头</string>
+    <string name="login_server_settings">服务器设置</string>
+    <string name="login_app_icon">App 图标</string>
+
+    <!-- 首页 / 邮箱列表 -->
+    <string name="mailbox_empty">没有邮件</string>
+    <string name="mailbox_starred">已星标</string>
+    <string name="mailbox_no_subject">（无主题）</string>
+    <string name="mailbox_no_account">还没有邮箱账号</string>
+    <string name="mailbox_pgp_encrypted">PGP 加密</string>
+    <string name="home_add_account">添加账号</string>
+    <string name="home_switch_account">切换账号</string>
+    <string name="home_avatar">头像</string>
+
+    <!-- 邮件详情 -->
+    <string name="detail_title">邮件详情</string>
+    <string name="detail_delete_title">删除邮件</string>
+    <string name="detail_delete_msg">确定删除这封邮件吗？</string>
+    <string name="detail_from">发件人</string>
+    <string name="detail_to">收件人</string>
+    <string name="detail_time">时间</string>
+    <string name="detail_no_subject">（无主题）</string>
+    <string name="detail_attachments">附件（%1$d）</string>
+    <string name="detail_attachment">附件</string>
+    <string name="detail_download">下载附件</string>
+    <string name="detail_open">打开附件</string>
+    <string name="detail_download_empty">下载内容为空</string>
+    <string name="detail_download_failed_http">下载失败：HTTP %1$d</string>
+    <string name="detail_saved_to_download">已保存到下载：%1$s</string>
+    <string name="detail_download_failed">下载失败：%1$s</string>
+    <string name="detail_create_file_failed">无法创建下载文件</string>
+    <string name="detail_write_file_failed">写入文件失败</string>
+    <string name="detail_binary_pgp_unsupported">二进制 PGP 附件暂不支持，请在网页版下载</string>
+    <string name="detail_no_server">未设置服务器地址</string>
+    <string name="detail_not_found">邮件不存在或已被删除</string>
+    <!-- PGP 解密 -->
+    <string name="detail_pgp_title">PGP 加密邮件</string>
+    <string name="detail_pgp_encrypted">这封邮件是 PGP 加密的</string>
+    <string name="detail_pgp_decrypt">解密</string>
+    <string name="detail_pgp_decrypting">解密中…</string>
+    <string name="detail_pgp_view">解密查看</string>
+    <string name="detail_pgp_passphrase_title">输入私钥口令</string>
+    <string name="detail_pgp_passphrase">口令</string>
+    <string name="detail_pgp_import_hint">请先在设置 → PGP 私钥里导入私钥</string>
+    <string name="detail_pgp_no_key_hint">请先在设置 → PGP 私钥里导入私钥</string>
+    <string name="detail_pgp_decrypt_failed">解密失败：%1$s</string>
+
+    <!-- 写信 -->
+    <string name="compose_title">写信</string>
+    <string name="compose_from">发件人</string>
+    <string name="compose_to">收件人（逗号分隔）</string>
+    <string name="compose_cc">抄送</string>
+    <string name="compose_bcc">密送</string>
+    <string name="compose_cc_hint">抄送（逗号分隔）</string>
+    <string name="compose_bcc_hint">密送（逗号分隔）</string>
+    <string name="compose_close_cc">关闭抄送</string>
+    <string name="compose_close_bcc">关闭密送</string>
+    <string name="compose_subject">主题</string>
+    <string name="compose_body">正文</string>
+    <string name="compose_pgp_encrypt">PGP 加密</string>
+    <string name="compose_pgp_recipients_need_key">收件人需有公钥，由服务器加密发送</string>
+    <string name="compose_attachments">附件</string>
+    <string name="compose_attachment_count">%1$d 个文件</string>
+    <string name="compose_remove_attachment">移除附件</string>
+    <string name="compose_no_account">还没有可用的发件账号</string>
+    <string name="compose_to_empty">收件人不能为空</string>
+    <string name="compose_fill_to_first">请先填写收件人</string>
+    <string name="compose_checking_keys">正在查询收件人公钥…</string>
+    <string name="compose_keys_ok_one">✓ 收件人有公钥，可以加密发送</string>
+    <string name="compose_keys_ok_many">✓ %1$d 个收件人有公钥，可以加密发送</string>
+    <string name="compose_keys_missing">✗ 没有公钥：%1$s</string>
+    <string name="compose_keys_missing_send">以下收件人没有 PGP 公钥，无法加密发送：%1$s</string>
+    <string name="compose_file_too_large">文件 %1$s 超过 20MB 限制</string>
+    <string name="compose_file_unreadable">无法读取文件 %1$s</string>
+    <string name="compose_attach_failed">附件处理失败：%1$s</string>
+    <string name="compose_save_draft_title">保存草稿？</string>
+    <string name="compose_save_draft_msg">是否把当前内容保存到草稿箱？</string>
+    <string name="compose_save_draft">保存</string>
+    <string name="compose_discard">不保存</string>
+
+    <!-- 草稿箱 -->
+    <string name="drafts_title">草稿箱</string>
+    <string name="drafts_empty">没有草稿</string>
+    <string name="drafts_no_to">（无收件人）</string>
+    <string name="drafts_no_subject">（无主题）</string>
+    <string name="drafts_delete">删除草稿</string>
+
+    <!-- 星标 -->
+    <string name="starred_title">星标</string>
+    <string name="starred_empty">没有星标邮件</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_logout_title">退出登录</string>
+    <string name="settings_logout_msg">确定要退出当前账号吗？</string>
+    <string name="settings_logout">退出</string>
+    <string name="settings_server">服务器地址</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_choose_theme">选择主题</string>
+    <string name="settings_dynamic_color">主题色跟随系统</string>
+    <string name="settings_dynamic_color_desc">开启后使用壁纸取色（Android 12+），关闭则用图标蓝</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_choose_language">选择语言</string>
+    <string name="settings_lang_system">跟随系统</string>
+    <string name="settings_pgp">PGP 加密</string>
+    <string name="settings_pgp_enable">启用 PGP</string>
+    <string name="settings_pgp_enable_desc">关闭后隐藏写信页 PGP 开关与解密入口</string>
+    <string name="settings_pgp_key">PGP 私钥</string>
+    <string name="settings_pgp_key_desc">导入 / 生成私钥以解密收到的加密邮件</string>
+    <string name="settings_save_failed">保存失败：%1$s</string>
+
+    <!-- PGP 密钥管理 -->
+    <string name="pgp_title">PGP 私钥</string>
+    <string name="pgp_import_title">导入 PGP 私钥</string>
+    <string name="pgp_import_hint">粘贴私钥的 armor 文本（-----BEGIN PGP PRIVATE KEY BLOCK----- 开头）。可以从网页版用的同一把钥匙复制过来。</string>
+    <string name="pgp_import_placeholder">-----BEGIN PGP PRIVATE KEY BLOCK-----</string>
+    <string name="pgp_import">导入</string>
+    <string name="pgp_importing">导入中…</string>
+    <string name="pgp_import_success">私钥导入成功</string>
+    <string name="pgp_import_failed">导入失败：%1$s</string>
+    <string name="pgp_delete_title">删除私钥</string>
+    <string name="pgp_delete_msg">确定删除本机保存的 PGP 私钥吗？删除后将无法再解密收到的加密邮件。</string>
+    <string name="pgp_deleted">私钥已删除</string>
+    <string name="pgp_generate_title">生成 PGP 密钥对</string>
+    <string name="pgp_generate_desc">在 App 内生成新的 PGP 密钥对，私钥自动保存到本机。公钥需要你手动发布（比如 keys.openpgp.org），否则别人查不到你的公钥、没法给你发加密邮件。</string>
+    <string name="pgp_key_type">密钥类型</string>
+    <string name="pgp_key_rsa">RSA 3072（兼容性最好）</string>
+    <string name="pgp_key_ed25519">Ed25519（更小更快）</string>
+    <string name="pgp_name">姓名（可选）</string>
+    <string name="pgp_email">邮箱 *</string>
+    <string name="pgp_passphrase">口令（可选，不设则无口令）</string>
+    <string name="pgp_passphrase_repeat">重复口令</string>
+    <string name="pgp_passphrase_mismatch">两次输入的口令不一致</string>
+    <string name="pgp_generate">生成</string>
+    <string name="pgp_generating">生成中…</string>
+    <string name="pgp_generate_success">密钥对生成成功</string>
+    <string name="pgp_generate_failed">生成失败：%1$s</string>
+    <string name="pgp_public_title">公钥（请发布）</string>
+    <string name="pgp_public_desc">这是你的公钥。把它发布到 keys.openpgp.org（或配置 WKD），别人才能查到并给你发加密邮件。</string>
+    <string name="pgp_copy">复制公钥</string>
+    <string name="pgp_copied">公钥已复制</string>
+    <string name="pgp_import_key">导入私钥</string>
+    <string name="pgp_generate_new">生成新密钥对</string>
+    <string name="pgp_has_key">已导入私钥</string>
+    <string name="pgp_reimport">重新导入</string>
+    <string name="pgp_delete_key">删除私钥</string>
+    <string name="pgp_fingerprint">指纹：%1$s</string>
+    <string name="pgp_key_id">Key ID：%1$s</string>
+    <string name="pgp_no_key_hint">还没有导入 PGP 私钥。导入后才能解密别人用你的公钥加密的邮件。</string>
+    <string name="pgp_note">说明：私钥只保存在本机加密存储中，不会上传到服务器；按登录账号隔离，切换账号后需要各自导入。</string>
+
+    <string name="pgp_err_invalid_key">不是有效的 PGP 私钥（缺少 -----BEGIN PGP PRIVATE KEY BLOCK-----）</string>
+    <string name="pgp_err_parse_failed">私钥解析失败</string>
+    <string name="pgp_err_email_empty">邮箱不能为空</string>
+    <string name="pgp_err_no_ciphertext">找不到 PGP 密文块</string>
+    <string name="pgp_err_no_private_key">还没有导入 PGP 私钥，请先在设置里导入</string>
+    <string name="pgp_err_bad_format">密文格式不对：找不到加密数据包</string>
+    <string name="pgp_err_wrong_passphrase">解密失败：口令不对，或这封邮件不是发给这把钥匙的</string>
+    <string name="pgp_err_wrong_key">这封邮件不是用已导入的钥匙加密的</string>
+    <string name="pgp_err_not_text">密文内容不是文字数据</string>
+
+    <string name="err_download_failed">下载失败：HTTP %1$d</string>
+    <string name="err_download_empty">下载内容为空</string>
+    <string name="err_connect_server">连接不到服务器的 API，请检查地址是否正确</string>
+    <string name="err_request_failed">请求失败</string>
+    <string name="err_login_no_token">登录返回缺少 token</string>
+    <string name="err_no_challenge_id">服务端未返回 challengeId</string>
+    <string name="err_no_options">服务端未返回 options</string>
+
+    <string name="mailbox_search_hint">搜索主题、发件人</string>
+    <string name="mailbox_search">搜索</string>
+    <string name="mailbox_clear">清除</string>
+    <string name="mailbox_no_search_result">没有找到相关邮件</string>
+    <string name="mailbox_empty">没有邮件</string>
+    <string name="mailbox_starred">已星标</string>
+    <string name="common_star">星标</string>
+    <string name="login_2fa_title">两步验证</string>
+    <string name="login_title">登录</string>
+    <string name="login_passkey">使用通行密钥登录</string>
+
+    <string name="common_save_failed">保存失败</string>
+    <string name="login_add_account">添加账号</string>
+    <string name="login_app_icon">App 图标</string>
+    <string name="login_passkey_unsupported">当前服务器不支持通行密钥登录</string>
+    <string name="login_passkey_none">此设备上没有可用的通行密钥</string>
+    <string name="login_passkey_unavailable">通行密钥不可用：%1$s</string>
+    <string name="login_passkey_failed">通行密钥登录失败：%1$s</string>
+    <string name="login_passkey_bad_type">返回的不是 PublicKey 凭证：%1$s</string>
+</resources>
