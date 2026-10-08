@@ -228,18 +228,18 @@ class PgpManager(private val context: Context, private val settings: AppSettings
         val signingKeyPair: JcaPGPKeyPair
         val encryptionKeyPair: JcaPGPKeyPair
         if (keyType == "ED25519") {
-            val edGen = java.security.KeyPairGenerator.getInstance("Ed25519", "BC")
+            val edGen = java.security.KeyPairGenerator.getInstance("Ed25519", bcProvider())
             @Suppress("DEPRECATION")
             val eddsaAlg = PGPPublicKey.EDDSA
             signingKeyPair = JcaPGPKeyPair(
                 eddsaAlg, edGen.generateKeyPair(), Date()
             )
-            val xGen = java.security.KeyPairGenerator.getInstance("X25519", "BC")
+            val xGen = java.security.KeyPairGenerator.getInstance("X25519", bcProvider())
             encryptionKeyPair = JcaPGPKeyPair(
                 PGPPublicKey.ECDH, xGen.generateKeyPair(), Date()
             )
         } else {
-            val keyGen = java.security.KeyPairGenerator.getInstance("RSA", "BC")
+            val keyGen = java.security.KeyPairGenerator.getInstance("RSA", bcProvider())
             keyGen.initialize(3072, SecureRandom())
             signingKeyPair = JcaPGPKeyPair(
                 PGPPublicKey.RSA_SIGN, keyGen.generateKeyPair(), Date()
