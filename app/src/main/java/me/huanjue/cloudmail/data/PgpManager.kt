@@ -356,9 +356,10 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             }
             // 诊断信息：帮助用户判断是钥匙不对还是口令不对
             val diag = " (email keys: ${emailKeyIds.joinToString(",")}; local keys: ${localKeyIds.joinToString(",")})"
+            val errDetail = lastErr?.let { " [${it.javaClass.simpleName}: ${it.message}]" } ?: ""
             throw PgpException(
-                if (!matchedKey) context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_key) + diag
-                else context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_passphrase) + diag,
+                if (!matchedKey) context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_key) + diag + errDetail
+                else context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_passphrase) + diag + errDetail,
                 lastErr
             )
         }
