@@ -1,6 +1,7 @@
 package me.huanjue.cloudmail.ui.star
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -8,13 +9,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -34,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.CloudMailApp
 import me.huanjue.cloudmail.data.model.ApiException
@@ -43,6 +49,8 @@ import me.huanjue.cloudmail.ui.mail.EmailRow
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StarredScreen(
+    currentTab: me.huanjue.cloudmail.ui.home.DrawerDestination,
+    onTabSelect: (me.huanjue.cloudmail.ui.home.DrawerDestination) -> Unit,
     onMenuClick: () -> Unit,
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit
 ) {
@@ -55,6 +63,17 @@ fun StarredScreen(
     var loadingMore by remember { mutableStateOf(false) }
     var hasMore by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var searchText by remember { mutableStateOf("") }
+
+    // 搜索过滤：主题、发件人
+    val filteredEmails = remember(emails, searchText) {
+        val kw = searchText.trim().lowercase()
+        if (kw.isEmpty()) emails else emails.filter {
+            (it.subject ?: "").lowercase().contains(kw) ||
+            (it.fromName ?: "").lowercase().contains(kw) ||
+            (it.fromEmail ?: "").lowercase().contains(kw)
+        }
+    }
 
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -82,7 +101,7 @@ fun StarredScreen(
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = "网络错误：${e.message}"
+                error = context.getString(R.string.common_network_error, e.message ?: "")
             } finally {
                 loading = false
                 loadingMore = false
@@ -113,39 +132,67 @@ fun StarredScreen(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("星标") },
+                title = {
+                    me.huanjue.cloudmail.ui.home.MailTabs(
+                        current = currentTab,
+                        onSelect = onTabSelect
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
                     }
                 }
             )
         }
     ) { padding ->
-        when {
-            loading -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
-
-            emails.isEmpty() -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("没有星标邮件", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            else -> LazyColumn(
-                state = listState,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // 搜索框
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.mailbox_search))
+                },
+                trailingIcon = {
+                    if (searchText.isNotEmpty()) {
+                        IconButton(onClick = { searchText = "" }) {
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.mailbox_clear))
+                        }
+                    }
+                },
+                singleLine = true,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            when {
+                loading -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+
+                filteredEmails.isEmpty() -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (searchText.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
+                        else stringResource(R.string.starred_empty),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                else -> LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize()
             ) {
-                items(emails, key = { it.emailId }) { email ->
+                items(filteredEmails, key = { it.emailId }) { email ->
                     EmailRow(
                         email = email,
                         onClick = { onOpenEmail(email.accountId, email.emailId, email.type) }

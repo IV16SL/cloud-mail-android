@@ -56,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
@@ -64,7 +66,8 @@ import me.huanjue.cloudmail.data.model.EmailItem
 @Composable
 fun MailboxScreen(
     viewModel: MailboxViewModel,
-    title: String,
+    currentTab: me.huanjue.cloudmail.ui.home.DrawerDestination,
+    onTabSelect: (me.huanjue.cloudmail.ui.home.DrawerDestination) -> Unit,
     onMenuClick: () -> Unit,
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit,
     onCompose: () -> Unit
@@ -73,8 +76,6 @@ fun MailboxScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-
-    var showAccountMenu by remember { mutableStateOf(false) }
 
     // 搜索框输入（本地即时状态，防抖逻辑在 ViewModel）
     var searchText by remember { mutableStateOf("") }
@@ -107,34 +108,21 @@ fun MailboxScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    TextButton(onClick = { showAccountMenu = true }) {
-                        Text(state.currentAccount?.email ?: title)
-                    }
-                    DropdownMenu(
-                        expanded = showAccountMenu,
-                        onDismissRequest = { showAccountMenu = false }
-                    ) {
-                        state.accounts.forEach { account ->
-                            DropdownMenuItem(
-                                text = { Text(account.email) },
-                                onClick = {
-                                    showAccountMenu = false
-                                    viewModel.switchAccount(account)
-                                }
-                            )
-                        }
-                    }
+                    me.huanjue.cloudmail.ui.home.MailTabs(
+                        current = currentTab,
+                        onSelect = onTabSelect
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCompose) {
-                Icon(Icons.Default.Edit, contentDescription = "写信")
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.compose_title))
             }
         }
     ) { padding ->
@@ -150,9 +138,9 @@ fun MailboxScreen(
                     searchText = it
                     viewModel.onSearchInput(it)
                 },
-                placeholder = { Text("搜索主题、发件人") },
+                placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.mailbox_search))
                 },
                 trailingIcon = {
                     if (searchText.isNotEmpty()) {
@@ -160,7 +148,7 @@ fun MailboxScreen(
                             searchText = ""
                             viewModel.clearSearch()
                         }) {
-                            Icon(Icons.Default.Clear, contentDescription = "清除")
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.mailbox_clear))
                         }
                     }
                 },
@@ -193,8 +181,8 @@ fun MailboxScreen(
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                if (state.searchKeyword.isNotBlank()) "没有找到相关邮件"
-                                else "没有邮件",
+                                if (state.searchKeyword.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
+                                else stringResource(R.string.mailbox_empty),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -266,7 +254,7 @@ fun EmailRow(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = email.subject?.takeIf { it.isNotBlank() } ?: "(无主题)",
+                text = email.subject?.takeIf { it.isNotBlank() } ?: stringResource(R.string.mailbox_no_subject),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = if (showUnread) FontWeight.Bold else FontWeight.Normal
                 ),
@@ -303,7 +291,7 @@ fun EmailRow(
                     first = false
                     Icon(
                         Icons.Default.Lock,
-                        contentDescription = "PGP 加密",
+                        contentDescription = stringResource(R.string.mailbox_pgp_encrypted),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
@@ -316,7 +304,7 @@ fun EmailRow(
                 ) {
                     Icon(
                         if (showStar) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = if (showStar) "已星标" else "星标",
+                        contentDescription = if (showStar) stringResource(R.string.mailbox_starred) else stringResource(R.string.common_star),
                         tint = if (showStar) Color(0xFFFFB300)
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
