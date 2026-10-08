@@ -345,6 +345,15 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                     .firstOrNull { it.keyID == sk.keyID }
                     ?: continue
                 matchedKey = true
+                // 诊断：打印这把钥匙的 S2K 参数（哈希、加密算法、S2K 类型），定位 checksum mismatch 原因
+                try {
+                    val s2k = sk.s2k
+                    android.util.Log.w(
+                        "PgpManager",
+                        "key ${"%016X".format(sk.keyID)} s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} encAlg=${sk.keyEncryptionAlgorithm}"
+                    )
+                } catch (_: Exception) {
+                }
                 for ((pwIdx, candidate) in pwCandidates.withIndex()) {
                     try {
                         val privateKey = extractPrivateKey(sk, candidate)
@@ -367,9 +376,15 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             // 诊断信息：帮助用户判断是钥匙不对还是口令不对
             val diag = " (email keys: ${emailKeyIds.joinToString(",")}; local keys: ${localKeyIds.joinToString(",")})"
             val errDetail = lastErr?.let { " [${it.javaClass.simpleName}: ${it.message}]" } ?: ""
+            val s2kDetail = try {
+                secretKeys.firstOrNull()?.let { sk ->
+                    val s2k = sk.s2k
+                    " [s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} enc=${sk.keyEncryptionAlgorithm}]"
+                }
+            } catch (_: Exception) { null } ?: ""
             throw PgpException(
-                if (!matchedKey) context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_key) + diag + errDetail
-                else context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_passphrase) + diag + errDetail,
+                if (!matchedKey) context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_key) + diag + errDetail + s2kDetail
+                else context.getString(me.huanjue.cloudmail.R.string.pgp_err_wrong_passphrase) + diag + errDetail + s2kDetail,
                 lastErr
             )
         }
