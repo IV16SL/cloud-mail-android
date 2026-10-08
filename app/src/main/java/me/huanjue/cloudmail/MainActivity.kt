@@ -21,6 +21,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.animation.doOnEnd
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -92,7 +93,7 @@ class MainActivity : ComponentActivity() {
         // 这样开屏动画播完时数据已就绪，AppNav 无需再转圈
         val app = applicationContext as CloudMailApp
         val startupDone = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
-        androidx.lifecycle.lifecycleScope.launch {
+        lifecycleScope.launch {
             val ok = try {
                 app.container.authRepository.restoreSession()
             } catch (_: Exception) { false }
