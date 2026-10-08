@@ -171,6 +171,10 @@ fun AppNav() {
                 }
             )
             val capabilities by container.capabilitiesRepository.capabilities.collectAsState()
+            // 进入登录页时刷新 capabilities，确保 passkey 按钮状态最新
+            LaunchedEffect(Unit) {
+                container.capabilitiesRepository.refresh()
+            }
             LoginScreen(
                 viewModel = vm,
                 isAddMode = addMode,
