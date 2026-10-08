@@ -38,8 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
-import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.CloudMailApp
 import me.huanjue.cloudmail.data.model.ApiException
@@ -63,7 +61,6 @@ fun StarredScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
 
-    // 搜索过滤：主题、发件人
     val filteredEmails = remember(emails, searchText) {
         val kw = searchText.trim().lowercase()
         if (kw.isEmpty()) emails else emails.filter {
@@ -99,7 +96,7 @@ fun StarredScreen(
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = context.getString(R.string.common_network_error, e.message ?: "")
+                error = "网络错误：${e.message}"
             } finally {
                 loading = false
                 loadingMore = false
@@ -130,10 +127,10 @@ fun StarredScreen(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.starred_title)) },
+                title = { Text("星标") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
+                        Icon(Icons.Default.Menu, contentDescription = "菜单")
                     }
                 }
             )
@@ -144,18 +141,17 @@ fun StarredScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 搜索框
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
+                placeholder = { Text("搜索") },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.mailbox_search))
+                    Icon(Icons.Default.Search, contentDescription = "搜索")
                 },
                 trailingIcon = {
                     if (searchText.isNotEmpty()) {
                         IconButton(onClick = { searchText = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.mailbox_clear))
+                            Icon(Icons.Default.Clear, contentDescription = "清除")
                         }
                     }
                 },
@@ -164,26 +160,23 @@ fun StarredScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            when {
-                loading -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
+        when {
+            loading -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
 
-                filteredEmails.isEmpty() -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (searchText.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
-                        else stringResource(R.string.starred_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            filteredEmails.isEmpty() -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("没有星标邮件", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
 
-                else -> LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize()
+            else -> LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
             ) {
                 items(filteredEmails, key = { it.emailId }) { email ->
                     EmailRow(
@@ -204,6 +197,6 @@ fun StarredScreen(
                 }
             }
         }
+        }
     }
-}
 }

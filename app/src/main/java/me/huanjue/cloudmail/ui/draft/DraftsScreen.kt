@@ -29,19 +29,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
-import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.CloudMailApp
 import me.huanjue.cloudmail.data.Draft
@@ -51,6 +50,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun DraftsScreen(
+    onMenuClick: () -> Unit,
+    onEditDraft: (draftId: String) -> Unit,
+    onNewDraft: () -> Unit
+) {
     val context = LocalContext.current
     val app = context.applicationContext as CloudMailApp
     val draftRepository = app.container.draftRepository
@@ -64,8 +68,6 @@ import java.util.Locale
     val myDrafts = drafts.filter { it.userId == 0L || it.userId == activeUserId?.userId }
 
     var searchText by remember { mutableStateOf("") }
-
-    // 搜索过滤：主题、收件人
     val filteredDrafts = remember(myDrafts, searchText) {
         val kw = searchText.trim().lowercase()
         if (kw.isEmpty()) myDrafts else myDrafts.filter {
@@ -77,17 +79,17 @@ import java.util.Locale
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drafts_title)) },
+                title = { Text("草稿箱") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
+                        Icon(Icons.Default.Menu, contentDescription = "菜单")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewDraft) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.compose_title))
+                Icon(Icons.Default.Add, contentDescription = "写信")
             }
         }
     ) { padding ->
@@ -99,14 +101,14 @@ import java.util.Locale
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
+                placeholder = { Text("搜索") },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.mailbox_search))
+                    Icon(Icons.Default.Search, contentDescription = "搜索")
                 },
                 trailingIcon = {
                     if (searchText.isNotEmpty()) {
                         IconButton(onClick = { searchText = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.mailbox_clear))
+                            Icon(Icons.Default.Clear, contentDescription = "清除")
                         }
                     }
                 },
@@ -115,29 +117,29 @@ import java.util.Locale
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            if (filteredDrafts.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (searchText.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
-                        else stringResource(R.string.drafts_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        if (filteredDrafts.isEmpty()) {
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("没有草稿", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredDrafts, key = { it.id }) { draft ->
+                    DraftRow(
+                        draft = draft,
+                        onClick = { onEditDraft(draft.id) },
+                        onDelete = {
+                            scope.launch { draftRepository.delete(draft.id) }
+                        }
                     )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredDrafts, key = { it.id }) { draft ->
-                        DraftRow(
-                            draft = draft,
-                            onClick = { onEditDraft(draft.id) },
-                            onDelete = { scope.launch { draftRepository.delete(draft.id) } }
-                        )
-                        HorizontalDivider()
-                    }
+                    HorizontalDivider()
                 }
             }
+        }
         }
     }
 }
@@ -158,14 +160,14 @@ private fun DraftRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = draft.to.ifBlank { stringResource(R.string.drafts_no_to) },
+                text = draft.to.ifBlank { "(无收件人)" },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = draft.subject.ifBlank { stringResource(R.string.drafts_no_subject) },
+                text = draft.subject.ifBlank { "(无主题)" },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -182,10 +184,9 @@ private fun DraftRow(
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = stringResource(R.string.drafts_delete),
+                contentDescription = "删除草稿",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
-        }
 }
