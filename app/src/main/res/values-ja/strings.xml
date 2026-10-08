@@ -216,16 +216,11 @@
     <string name="mailbox_search">検索</string>
     <string name="mailbox_clear">クリア</string>
     <string name="mailbox_no_search_result">該当するメールがありません</string>
-    <string name="mailbox_empty">メールがありません</string>
-    <string name="mailbox_starred">スター付き</string>
     <string name="common_star">スター</string>
     <string name="login_2fa_title">2段階認証</string>
-    <string name="login_title">ログイン</string>
     <string name="login_passkey">パスキーでログイン</string>
 
     <string name="common_save_failed">保存に失敗しました</string>
-    <string name="login_add_account">アカウントを追加</string>
-    <string name="login_app_icon">アプリアイコン</string>
     <string name="login_passkey_unsupported">このサーバーはパスキーログインに対応していません</string>
     <string name="login_passkey_none">このデバイスにパスキーがありません</string>
     <string name="login_passkey_unavailable">パスキーが利用できません：%1$s</string>

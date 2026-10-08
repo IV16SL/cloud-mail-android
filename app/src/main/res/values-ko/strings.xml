@@ -216,16 +216,11 @@
     <string name="mailbox_search">검색</string>
     <string name="mailbox_clear">지우기</string>
     <string name="mailbox_no_search_result">일치하는 메일이 없습니다</string>
-    <string name="mailbox_empty">메일이 없습니다</string>
-    <string name="mailbox_starred">별표 표시됨</string>
     <string name="common_star">별표</string>
     <string name="login_2fa_title">2단계 인증</string>
-    <string name="login_title">로그인</string>
     <string name="login_passkey">패스키로 로그인</string>
 
     <string name="common_save_failed">저장 실패</string>
-    <string name="login_add_account">계정 추가</string>
-    <string name="login_app_icon">앱 아이콘</string>
     <string name="login_passkey_unsupported">이 서버는 패스키 로그인을 지원하지 않습니다</string>
     <string name="login_passkey_none">이 기기에 사용 가능한 패스키가 없습니다</string>
     <string name="login_passkey_unavailable">패스키를 사용할 수 없습니다: %1$s</string>

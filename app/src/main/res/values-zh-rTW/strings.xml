@@ -216,16 +216,11 @@
     <string name="mailbox_search">搜尋</string>
     <string name="mailbox_clear">清除</string>
     <string name="mailbox_no_search_result">沒有找到相關郵件</string>
-    <string name="mailbox_empty">沒有郵件</string>
-    <string name="mailbox_starred">已加星號</string>
     <string name="common_star">星號</string>
     <string name="login_2fa_title">兩步驟驗證</string>
-    <string name="login_title">登錄</string>
     <string name="login_passkey">使用通行密鑰登錄</string>
 
     <string name="common_save_failed">儲存失敗</string>
-    <string name="login_add_account">新增帳號</string>
-    <string name="login_app_icon">App 圖示</string>
     <string name="login_passkey_unsupported">目前伺服器不支援通行密鑰登錄</string>
     <string name="login_passkey_none">此裝置上沒有可用的通行密鑰</string>
     <string name="login_passkey_unavailable">通行密鑰不可用：%1$s</string>

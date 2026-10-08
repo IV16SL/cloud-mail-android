@@ -216,16 +216,11 @@
     <string name="mailbox_search">Search</string>
     <string name="mailbox_clear">Clear</string>
     <string name="mailbox_no_search_result">No matching emails</string>
-    <string name="mailbox_empty">No emails</string>
-    <string name="mailbox_starred">Starred</string>
     <string name="common_star">Star</string>
     <string name="login_2fa_title">Two-Step Verification</string>
-    <string name="login_title">Sign In</string>
     <string name="login_passkey">Sign in with Passkey</string>
 
     <string name="common_save_failed">Save failed</string>
-    <string name="login_add_account">Add Account</string>
-    <string name="login_app_icon">App icon</string>
     <string name="login_passkey_unsupported">This server does not support Passkey login</string>
     <string name="login_passkey_none">No Passkeys available on this device</string>
     <string name="login_passkey_unavailable">Passkey unavailable: %1$s</string>

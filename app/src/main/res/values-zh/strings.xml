@@ -216,16 +216,11 @@
     <string name="mailbox_search">搜索</string>
     <string name="mailbox_clear">清除</string>
     <string name="mailbox_no_search_result">没有找到相关邮件</string>
-    <string name="mailbox_empty">没有邮件</string>
-    <string name="mailbox_starred">已星标</string>
     <string name="common_star">星标</string>
     <string name="login_2fa_title">两步验证</string>
-    <string name="login_title">登录</string>
     <string name="login_passkey">使用通行密钥登录</string>
 
     <string name="common_save_failed">保存失败</string>
-    <string name="login_add_account">添加账号</string>
-    <string name="login_app_icon">App 图标</string>
     <string name="login_passkey_unsupported">当前服务器不支持通行密钥登录</string>
     <string name="login_passkey_none">此设备上没有可用的通行密钥</string>
     <string name="login_passkey_unavailable">通行密钥不可用：%1$s</string>
