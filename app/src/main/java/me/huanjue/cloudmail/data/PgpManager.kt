@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.bouncycastle.bcpg.ArmoredInputStream
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.bcpg.sig.KeyFlags
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPCompressedData
 import org.bouncycastle.openpgp.PGPEncryptedData
@@ -24,6 +25,8 @@ import org.bouncycastle.openpgp.PGPSecretKey
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection
 import org.bouncycastle.openpgp.PGPSignature
+import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator
+import org.bouncycastle.openpgp.PGPSignatureSubpacketVector
 import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder
@@ -263,7 +266,11 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             ).setProvider(bcProvider()),
             encryptor
         )
-        keyRingGen.addSubKey(encryptionKeyPair)
+        // 给加密子钥匙设置 key flags（可加密通信+可加密存储），否则 FlowCrypt 等认不出它能加密
+        val subpacketGen = PGPSignatureSubpacketGenerator()
+        subpacketGen.setKeyFlags(false, KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE)
+        val hashedPcks: PGPSignatureSubpacketVector = subpacketGen.generate()
+        keyRingGen.addSubKey(encryptionKeyPair, hashedPcks, null)
 
         val secretKeyRing = keyRingGen.generateSecretKeyRing()
         val publicKeyRing = keyRingGen.generatePublicKeyRing()
