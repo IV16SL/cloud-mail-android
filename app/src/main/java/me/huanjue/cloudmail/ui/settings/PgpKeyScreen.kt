@@ -42,6 +42,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.CloudMailApp
 import me.huanjue.cloudmail.data.PgpKeyInfo
@@ -98,12 +100,11 @@ fun PgpKeyScreen(onBack: () -> Unit) {
     if (showImport) {
         AlertDialog(
             onDismissRequest = { if (!importing) showImport = false },
-            title = { Text("导入 PGP 私钥") },
+            title = { Text(stringResource(R.string.pgp_import_title)) },
             text = {
                 Column {
                     Text(
-                        "粘贴私钥的 armor 文本（-----BEGIN PGP PRIVATE KEY BLOCK----- 开头）。" +
-                            "可以从网页版用的同一把钥匙复制过来。",
+                        stringResource(R.string.pgp_import_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -111,7 +112,7 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                     OutlinedTextField(
                         value = importText,
                         onValueChange = { importText = it },
-                        placeholder = { Text("-----BEGIN PGP PRIVATE KEY BLOCK-----") },
+                        placeholder = { Text(stringResource(R.string.pgp_import_placeholder)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
@@ -129,22 +130,22 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                                 keyInfo = info
                                 importText = ""
                                 showImport = false
-                                snack("私钥导入成功")
+                                snack(context.getString(R.string.pgp_import_success))
                             } catch (e: Exception) {
-                                snack("导入失败：${e.message}")
+                                snack(context.getString(R.string.pgp_import_failed, e.message ?: ""))
                             } finally {
                                 importing = false
                             }
                         }
                     },
                     enabled = !importing && importText.isNotBlank()
-                ) { Text(if (importing) "导入中…" else "导入") }
+                ) { Text(if (importing) stringResource(R.string.pgp_importing) else stringResource(R.string.pgp_import)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showImport = false },
                     enabled = !importing
-                ) { Text("取消") }
+                ) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -152,20 +153,20 @@ fun PgpKeyScreen(onBack: () -> Unit) {
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("删除私钥") },
-            text = { Text("确定删除本机保存的 PGP 私钥吗？删除后将无法再解密收到的加密邮件。") },
+            title = { Text(stringResource(R.string.pgp_delete_title)) },
+            text = { Text(stringResource(R.string.pgp_delete_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     scope.launch {
                         pgpManager.deletePrivateKey()
                         keyInfo = null
-                        snack("私钥已删除")
+                        snack(context.getString(R.string.pgp_deleted))
                     }
-                }) { Text("删除") }
+                }) { Text(stringResource(R.string.common_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -175,23 +176,23 @@ fun PgpKeyScreen(onBack: () -> Unit) {
         val passMismatch = genPass1 != genPass2
         AlertDialog(
             onDismissRequest = { if (!generating) showGenerate = false },
-            title = { Text("生成 PGP 密钥对") },
+            title = { Text(stringResource(R.string.pgp_generate_title)) },
             text = {
                 Column {
                     Text(
-                        "在 App 内生成新的 PGP 密钥对，私钥自动保存到本机。公钥需要你手动发布（比如 keys.openpgp.org），否则别人查不到你的公钥、没法给你发加密邮件。",
+                        stringResource(R.string.pgp_generate_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("密钥类型", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.pgp_key_type), style = MaterialTheme.typography.labelMedium)
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(
                             selected = genKeyType == "RSA",
                             onClick = { genKeyType = "RSA" },
                             enabled = !generating
                         )
-                        Text("RSA 3072（兼容性最好）", modifier = Modifier.clickable(enabled = !generating) { genKeyType = "RSA" })
+                        Text(stringResource(R.string.pgp_key_rsa), modifier = Modifier.clickable(enabled = !generating) { genKeyType = "RSA" })
                     }
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(
@@ -199,13 +200,13 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                             onClick = { genKeyType = "ED25519" },
                             enabled = !generating
                         )
-                        Text("Ed25519（更小更快）", modifier = Modifier.clickable(enabled = !generating) { genKeyType = "ED25519" })
+                        Text(stringResource(R.string.pgp_key_ed25519), modifier = Modifier.clickable(enabled = !generating) { genKeyType = "ED25519" })
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = genName,
                         onValueChange = { genName = it },
-                        label = { Text("姓名（可选）") },
+                        label = { Text(stringResource(R.string.pgp_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generating,
                         singleLine = true
@@ -214,7 +215,7 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                     OutlinedTextField(
                         value = genEmail,
                         onValueChange = { genEmail = it },
-                        label = { Text("邮箱 *") },
+                        label = { Text(stringResource(R.string.pgp_email)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generating,
                         singleLine = true
@@ -223,7 +224,7 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                     OutlinedTextField(
                         value = genPass1,
                         onValueChange = { genPass1 = it },
-                        label = { Text("口令（可选，不设则无口令）") },
+                        label = { Text(stringResource(R.string.pgp_passphrase)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generating,
                         singleLine = true,
@@ -233,7 +234,7 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                     OutlinedTextField(
                         value = genPass2,
                         onValueChange = { genPass2 = it },
-                        label = { Text("重复口令") },
+                        label = { Text(stringResource(R.string.pgp_passphrase_repeat)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generating,
                         singleLine = true,
@@ -242,7 +243,7 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                     )
                     if (passMismatch) {
                         Text(
-                            "两次输入的口令不一致",
+                            stringResource(R.string.pgp_passphrase_mismatch),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -262,22 +263,27 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                                 publicArmor = pub
                                 genName = ""; genEmail = ""; genPass1 = ""; genPass2 = ""; genKeyType = "RSA"
                                 showGenerate = false
-                                snack("密钥对生成成功")
+                                // 生成后把公钥推给服务端刷新缓存，避免等 7 天
+                                try {
+                                    app.container.mailRepository.pgpKeyUpload(pub)
+                                } catch (_: Exception) {
+                                }
+                                snack(context.getString(R.string.pgp_generate_success))
                             } catch (e: Exception) {
-                                snack("生成失败：${e.message}")
+                                snack(context.getString(R.string.pgp_generate_failed, e.message ?: ""))
                             } finally {
                                 generating = false
                             }
                         }
                     },
                     enabled = !generating && genEmail.isNotBlank() && !passMismatch
-                ) { Text(if (generating) "生成中…" else "生成") }
+                ) { Text(if (generating) stringResource(R.string.pgp_generating) else stringResource(R.string.pgp_generate)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showGenerate = false },
                     enabled = !generating
-                ) { Text("取消") }
+                ) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -288,11 +294,11 @@ fun PgpKeyScreen(onBack: () -> Unit) {
         val clipboard = LocalClipboardManager.current
         AlertDialog(
             onDismissRequest = { publicArmor = null },
-            title = { Text("公钥（请发布）") },
+            title = { Text(stringResource(R.string.pgp_public_title)) },
             text = {
                 Column {
                     Text(
-                        "这是你的公钥。把它发布到 keys.openpgp.org（或配置 WKD），别人才能查到并给你发加密邮件。",
+                        stringResource(R.string.pgp_public_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -313,11 +319,11 @@ fun PgpKeyScreen(onBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     clipboard.setText(androidx.compose.ui.text.AnnotatedString(pubKey))
-                    snack("公钥已复制")
-                }) { Text("复制公钥") }
+                    snack(context.getString(R.string.pgp_copied))
+                }) { Text(stringResource(R.string.pgp_copy)) }
             },
             dismissButton = {
-                TextButton(onClick = { publicArmor = null }) { Text("关闭") }
+                TextButton(onClick = { publicArmor = null }) { Text(stringResource(R.string.common_close)) }
             }
         )
     }
@@ -326,10 +332,10 @@ fun PgpKeyScreen(onBack: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("PGP 私钥") },
+                title = { Text(stringResource(R.string.pgp_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -356,27 +362,27 @@ fun PgpKeyScreen(onBack: () -> Unit) {
             val info = keyInfo
             if (info == null) {
                 Text(
-                    "还没有导入 PGP 私钥。导入后才能解密别人用你的公钥加密的邮件。",
+                    stringResource(R.string.pgp_no_key_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { showImport = true }) {
-                    Text("导入私钥")
+                    Text(stringResource(R.string.pgp_import_key))
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { showGenerate = true }) {
-                    Text("生成新密钥对")
+                    Text(stringResource(R.string.pgp_generate_new))
                 }
             } else {
                 ListItem(
-                    headlineContent = { Text("已导入私钥") },
+                    headlineContent = { Text(stringResource(R.string.pgp_has_key)) },
                     supportingContent = {
                         Text(
                             buildString {
                                 if (info.userId.isNotBlank()) appendLine(info.userId)
-                                appendLine("指纹：${formatFingerprint(info.fingerprint)}")
-                                append("Key ID：${info.keyId}")
+                                appendLine(context.getString(R.string.pgp_fingerprint, formatFingerprint(info.fingerprint)))
+                                append(context.getString(R.string.pgp_key_id, info.keyId))
                             }
                         )
                     },
@@ -386,22 +392,21 @@ fun PgpKeyScreen(onBack: () -> Unit) {
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { showImport = true }) {
-                    Text("重新导入")
+                    Text(stringResource(R.string.pgp_reimport))
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { showGenerate = true }) {
-                    Text("生成新密钥对")
+                    Text(stringResource(R.string.pgp_generate_new))
                 }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = { showDeleteConfirm = true }) {
                     Icon(Icons.Default.Delete, contentDescription = null)
-                    Text("删除私钥", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.pgp_delete_key), color = MaterialTheme.colorScheme.error)
                 }
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                "说明：私钥只保存在本机加密存储中，不会上传到服务器；" +
-                    "按登录账号隔离，切换账号后需要各自导入。",
+                stringResource(R.string.pgp_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -91,4 +91,8 @@ interface ApiService {
     /** 查收件人公钥状态（服务端经 WKD → keys.openpgp.org 探测） */
     @GET("pgp/key-status")
     suspend fun pgpKeyStatus(@Query("email") email: String): ApiResponse<PgpKeyStatus>
+
+    /** 上传公钥并刷新服务端缓存（App 生成钥匙后调用） */
+    @POST("pgp/key-upload")
+    suspend fun pgpKeyUpload(@Body body: Map<String, String>): ApiResponse<Map<String, Any>>
 }

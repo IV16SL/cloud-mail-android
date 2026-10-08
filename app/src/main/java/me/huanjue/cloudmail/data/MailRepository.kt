@@ -24,8 +24,8 @@ class MailRepository {
             val url = serverUrl.trim().trimEnd('/') + "/oss/" + key.trimStart('/')
             val req = Request.Builder().url(url).get().build()
             downloadClient.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) throw Exception("下载失败：HTTP ${resp.code}")
-                resp.body?.bytes() ?: throw Exception("下载内容为空")
+                if (!resp.isSuccessful) throw Exception(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_download_failed, resp.code))
+                resp.body?.bytes() ?: throw Exception(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_download_empty))
             }
         }
 
@@ -114,4 +114,13 @@ class MailRepository {
     /** 查收件人是否有 PGP 公钥（写信页 PGP 开关用） */
     suspend fun pgpKeyStatus(email: String): PgpKeyStatus =
         unwrap { api.pgpKeyStatus(email) }
+
+    /** 上传公钥并刷新服务端缓存（生成钥匙后调用） */
+    suspend fun pgpKeyUpload(armored: String) {
+        try {
+            unwrap { api.pgpKeyUpload(mapOf("armored" to armored)) }
+        } catch (_: Exception) {
+            // 上传失败不阻塞，服务端 1 小时后会通过 WKD 重新发现
+        }
+    }
 }
