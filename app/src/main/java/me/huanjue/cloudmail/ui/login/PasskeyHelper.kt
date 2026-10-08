@@ -36,7 +36,7 @@ object PasskeyHelper {
             if (credential is PublicKeyCredential) {
                 credential.authenticationResponseJson
             } else {
-                throw IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.login_passkey_bad_type, credential.type))
+                throw kotlin.IllegalStateException(me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.login_passkey_bad_type, credential.type))
             }
         }
 }
