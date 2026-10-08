@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.animation.doOnEnd
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -67,7 +68,22 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        // 系统开屏直接做圆扩散转场：0.6s 停留后从中心向外扩散 0.5s 揭开主界面
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            val cx = splashScreenView.width / 2f
+            val cy = splashScreenView.height / 2f
+            val finalRadius = kotlin.math.hypot(cx.toDouble(), cy.toDouble()).toFloat()
+            val reveal = android.view.ViewAnimationUtils.createCircularReveal(
+                splashScreenView, cx.toInt(), cy.toInt(), 0f, finalRadius
+            ).apply {
+                duration = 500
+                interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+                doOnEnd { splashScreenView.remove() }
+            }
+            // 停留 0.6s 后开始扩散
+            splashScreenView.postDelayed({ reveal.start() }, 600)
+        }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -85,19 +101,9 @@ class MainActivity : ComponentActivity() {
                 "dark" -> true
                 else -> androidx.compose.foundation.isSystemInDarkTheme()
             }
-            var showSplash by remember { mutableStateOf(true) }
             val dynamicColor by app.container.settings.dynamicColor.collectAsState(initial = false)
             CloudMailTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    AppNav()
-                    if (showSplash) {
-                        me.huanjue.cloudmail.ui.splash.CircularRevealSplash(
-                            onFinished = { showSplash = false }
-                        )
-                    }
-                }
+                AppNav()
             }
         }
     }
@@ -171,10 +177,6 @@ fun AppNav() {
                 }
             )
             val capabilities by container.capabilitiesRepository.capabilities.collectAsState()
-            // 进入登录页时刷新 capabilities，确保 passkey 按钮状态最新
-            LaunchedEffect(Unit) {
-                container.capabilitiesRepository.refresh()
-            }
             LoginScreen(
                 viewModel = vm,
                 isAddMode = addMode,
