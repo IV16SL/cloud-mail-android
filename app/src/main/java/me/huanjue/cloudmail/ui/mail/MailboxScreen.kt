@@ -37,7 +37,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -156,27 +155,21 @@ fun MailboxScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            if (state.isLoading && state.emails.isEmpty()) {
+            // 加载时一律显示中间大圈（包括下拉刷新）
+            if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                // 下拉刷新：isLoading 且已有数据时为刷新状态
+                // 下拉刷新：用中间大圈，不显示顶部小圈
                 val pullRefreshState = rememberPullToRefreshState()
                 PullToRefreshBox(
-                    isRefreshing = state.isLoading,
+                    isRefreshing = false,
                     onRefresh = { viewModel.refresh() },
                     modifier = Modifier.fillMaxSize(),
-                    state = pullRefreshState,
-                    indicator = {
-                        PullToRefreshDefaults.Indicator(
-                            modifier = Modifier.align(Alignment.TopCenter),
-                            isRefreshing = state.isLoading,
-                            state = pullRefreshState,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    state = pullRefreshState
                 ) {
+                    Box(Modifier.fillMaxSize()) {
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
