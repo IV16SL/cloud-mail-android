@@ -1,5 +1,6 @@
 package me.huanjue.cloudmail.ui.mail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -208,16 +209,18 @@ fun MailboxScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(8.dp),
+                                        .background(Color.Red)
+                                        .padding(16.dp),
                                     contentAlignment = androidx.compose.ui.Alignment.CenterEnd
                                 ) {
                                     androidx.compose.material3.Icon(
                                         imageVector = Icons.Filled.Delete,
                                         contentDescription = null,
-                                        tint = Color.Red
+                                        tint = Color.White
                                     )
                                 }
-                            }
+                            },
+                            modifier = Modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
                         ) {
                             EmailRow(
                                 email = email,
