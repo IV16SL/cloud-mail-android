@@ -1,7 +1,5 @@
 package me.huanjue.cloudmail.ui.mail
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -69,10 +67,9 @@ import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
 import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,60 +187,64 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑删除：手写实现，只按位置判 50%，不用速度触发，防止误触
-                        // 用 draggable 而不是 pointerInput，避免截获下拉刷新手势
-                        val offsetX = remember { Animatable(0f) }
-                        val scope = rememberCoroutineScope()
+                        // 左滑删除：用官方组件，但在 confirm 里加位置校验，拦截速度误触发
                         var rowWidth by remember { mutableStateOf(0) }
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    // 速度触发时位置可能没到 50%，必须校验
+                                    val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
+                                    if (rowWidth > 0 && offset <= -rowWidth * 0.5f) {
+                                        viewModel.deleteEmail(email.emailId)
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .onSizeChanged { rowWidth = it.width }
-                                .draggable(
-                                    state = rememberDraggableState { delta ->
-                                        val newVal = (offsetX.value + delta).coerceAtMost(0f)
-                                        scope.launch { offsetX.snapTo(newVal) }
-                                    },
-                                    orientation = Orientation.Horizontal,
-                                    onDragStopped = {
-                                        scope.launch {
-                                            // 只看位置不看速度
-                                            if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
-                                                viewModel.deleteEmail(email.emailId)
-                                            }
-                                            offsetX.animateTo(0f, tween(200))
-                                        }
-                                    }
-                                )
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Red)
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.CenterEnd
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Red)
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                EmailRow(
-                                    email = email,
-                                    onClick = {
-                                        if (state.type == 0) viewModel.markRead(email.emailId)
-                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                        onOpenEmail(accountId, email.emailId, state.type)
-                                    },
-                                    onToggleStar = { viewModel.toggleStar(email) }
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surface)
+                                ) {
+                                    EmailRow(
+                                        email = email,
+                                        onClick = {
+                                            if (state.type == 0) viewModel.markRead(email.emailId)
+                                            val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                            onOpenEmail(accountId, email.emailId, state.type)
+                                        },
+                                        onToggleStar = { viewModel.toggleStar(email) }
+                                    )
+                                }
                             }
                         }
                         HorizontalDivider()
