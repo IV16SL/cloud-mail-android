@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -70,6 +69,10 @@ import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
 import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.runtime.mutableFloatStateOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,6 +191,7 @@ fun MailboxScreen(
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
                         // 左滑删除：手写实现，只按位置判 50%，不用速度触发，防止误触
+                        // 用 draggable 而不是 pointerInput，避免截获下拉刷新手势
                         val offsetX = remember { Animatable(0f) }
                         val scope = rememberCoroutineScope()
                         var rowWidth by remember { mutableStateOf(0) }
@@ -195,27 +199,22 @@ fun MailboxScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .onSizeChanged { rowWidth = it.width }
-                                .pointerInput(email.emailId) {
-                                    detectHorizontalDragGestures(
-                                        onDragEnd = {
-                                            scope.launch {
-                                                if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
-                                                    viewModel.deleteEmail(email.emailId)
-                                                }
-                                                offsetX.animateTo(0f, tween(200))
+                                .draggable(
+                                    state = rememberDraggableState { delta ->
+                                        val newVal = (offsetX.value + delta).coerceAtMost(0f)
+                                        scope.launch { offsetX.snapTo(newVal) }
+                                    },
+                                    orientation = Orientation.Horizontal,
+                                    onDragStopped = {
+                                        scope.launch {
+                                            // 只看位置不看速度
+                                            if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
+                                                viewModel.deleteEmail(email.emailId)
                                             }
-                                        },
-                                        onDragCancel = {
-                                            scope.launch { offsetX.animateTo(0f, tween(200)) }
-                                        },
-                                        onHorizontalDrag = { _, dragAmount ->
-                                            scope.launch {
-                                                val newVal = (offsetX.value + dragAmount).coerceAtMost(0f)
-                                                offsetX.snapTo(newVal)
-                                            }
+                                            offsetX.animateTo(0f, tween(200))
                                         }
-                                    )
-                                }
+                                    }
+                                )
                         ) {
                             Box(
                                 modifier = Modifier

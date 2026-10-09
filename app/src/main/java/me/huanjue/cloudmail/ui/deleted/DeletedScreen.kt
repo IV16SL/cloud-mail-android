@@ -42,7 +42,6 @@ import me.huanjue.cloudmail.R
 import me.huanjue.cloudmail.ui.mail.EmailRow
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.derivedStateOf
@@ -51,6 +50,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.runtime.mutableFloatStateOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,6 +142,7 @@ fun DeletedScreen(
                     items(state.emails, key = { it.emailId }) { email ->
                         // 左滑彻底删除，右滑恢复
                         // 左滑彻底删除，右滑恢复：手写实现，只按位置判 50%，不用速度触发
+                        // 用 draggable 而不是 pointerInput，避免截获下拉刷新手势
                         val offsetX = remember { Animatable(0f) }
                         val scope = rememberCoroutineScope()
                         var rowWidth by remember { mutableStateOf(0) }
@@ -156,31 +160,25 @@ fun DeletedScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .onSizeChanged { rowWidth = it.width }
-                                .pointerInput(email.emailId) {
-                                    detectHorizontalDragGestures(
-                                        onDragEnd = {
-                                            scope.launch {
-                                                if (rowWidth > 0) {
-                                                    when {
-                                                        offsetX.value <= -rowWidth * 0.5f ->
-                                                            viewModel.permanentDelete(email.emailId)
-                                                        offsetX.value >= rowWidth * 0.5f ->
-                                                            viewModel.restore(email.emailId)
-                                                    }
+                                .draggable(
+                                    state = rememberDraggableState { delta ->
+                                        scope.launch { offsetX.snapTo(offsetX.value + delta) }
+                                    },
+                                    orientation = Orientation.Horizontal,
+                                    onDragStopped = {
+                                        scope.launch {
+                                            if (rowWidth > 0) {
+                                                when {
+                                                    offsetX.value <= -rowWidth * 0.5f ->
+                                                        viewModel.permanentDelete(email.emailId)
+                                                    offsetX.value >= rowWidth * 0.5f ->
+                                                        viewModel.restore(email.emailId)
                                                 }
-                                                offsetX.animateTo(0f, tween(200))
                                             }
-                                        },
-                                        onDragCancel = {
-                                            scope.launch { offsetX.animateTo(0f, tween(200)) }
-                                        },
-                                        onHorizontalDrag = { _, dragAmount ->
-                                            scope.launch {
-                                                offsetX.snapTo(offsetX.value + dragAmount)
-                                            }
+                                            offsetX.animateTo(0f, tween(200))
                                         }
-                                    )
-                                }
+                                    }
+                                )
                         ) {
                             Box(
                                 modifier = Modifier
