@@ -66,9 +66,12 @@ import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
 import kotlin.math.roundToInt
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.layout.onSizeChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -186,39 +189,40 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
-                            confirmValueChange = { value ->
-                                if (value == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.deleteEmail(email.emailId)
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = false,
-                            backgroundContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Red)
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Delete,
-                                        contentDescription = null,
-                                        tint = Color.White
-                                    )
-                                }
-                            }
+                        // 左滑删除：手写，只按 50% 位置触发，不看速度
+                        val offsetX = remember { Animatable(0f) }
+                        val scope = rememberCoroutineScope()
+                        var rowWidth by remember { mutableStateOf(0) }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onSizeChanged { rowWidth = it.width }
+                                .draggable(
+                                    state = rememberDraggableState { delta ->
+                                        scope.launch {
+                                            offsetX.snapTo((offsetX.value + delta).coerceAtMost(0f))
+                                        }
+                                    },
+                                    orientation = Orientation.Horizontal,
+                                    onDragStopped = {
+                                        scope.launch {
+                                            if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
+                                                viewModel.deleteEmail(email.emailId)
+                                            }
+                                            offsetX.animateTo(0f, tween(200))
+                                        }
+                                    }
+                                )
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
+                                modifier = Modifier.fillMaxSize().background(Color.Red).padding(16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(imageVector = Icons.Filled.Delete, contentDescription = null, tint = Color.White)
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxWidth()
+                                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                                     .background(MaterialTheme.colorScheme.surface)
                             ) {
                                 EmailRow(

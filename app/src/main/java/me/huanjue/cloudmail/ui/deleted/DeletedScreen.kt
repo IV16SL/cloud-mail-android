@@ -46,9 +46,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,45 +139,53 @@ fun DeletedScreen(
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
-                            confirmValueChange = { value ->
-                                when (value) {
-                                    SwipeToDismissBoxValue.EndToStart -> {
-                                        viewModel.permanentDelete(email.emailId)
-                                        true
-                                    }
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        viewModel.restore(email.emailId)
-                                        true
-                                    }
-                                    else -> false
+                        // 左滑彻底删除，右滑恢复：手写，只按 50% 位置触发
+                        val offsetX = remember { Animatable(0f) }
+                        val scope = rememberCoroutineScope()
+                        var rowWidth by remember { mutableStateOf(0) }
+                        val bgColor by remember {
+                            derivedStateOf {
+                                when {
+                                    offsetX.value > 0 -> Color(0xFF4CAF50)
+                                    offsetX.value < 0 -> Color.Red
+                                    else -> Color.Transparent
                                 }
                             }
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
-                                val (bgColor, icon, alignment) = when {
-                                    offset > 0 -> Triple(Color(0xFF4CAF50), Icons.Default.Restore, Alignment.CenterStart)
-                                    offset < 0 -> Triple(Color.Red, Icons.Default.DeleteForever, Alignment.CenterEnd)
-                                    else -> Triple(Color.Transparent, Icons.Default.DeleteForever, Alignment.CenterEnd)
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(bgColor)
-                                        .padding(16.dp),
-                                    contentAlignment = alignment
-                                ) {
-                                    Icon(imageVector = icon, contentDescription = null, tint = Color.White)
-                                }
-                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onSizeChanged { rowWidth = it.width }
+                                .draggable(
+                                    state = rememberDraggableState { delta ->
+                                        scope.launch { offsetX.snapTo(offsetX.value + delta) }
+                                    },
+                                    orientation = Orientation.Horizontal,
+                                    onDragStopped = {
+                                        scope.launch {
+                                            if (rowWidth > 0) {
+                                                when {
+                                                    offsetX.value <= -rowWidth * 0.5f -> viewModel.permanentDelete(email.emailId)
+                                                    offsetX.value >= rowWidth * 0.5f -> viewModel.restore(email.emailId)
+                                                }
+                                            }
+                                            offsetX.animateTo(0f, tween(200))
+                                        }
+                                    }
+                                )
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
+                                modifier = Modifier.fillMaxSize().background(bgColor).padding(16.dp),
+                                contentAlignment = if (offsetX.value >= 0) Alignment.CenterStart else Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    imageVector = if (offsetX.value >= 0) Icons.Default.Restore else Icons.Default.DeleteForever,
+                                    contentDescription = null, tint = Color.White
+                                )
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxWidth()
+                                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                                     .background(MaterialTheme.colorScheme.surface)
                             ) {
                                 EmailRow(
@@ -188,8 +200,8 @@ fun DeletedScreen(
                         HorizontalDivider()
                     }
                     }
+                    }
                 }
             }
         }
     }
-}
