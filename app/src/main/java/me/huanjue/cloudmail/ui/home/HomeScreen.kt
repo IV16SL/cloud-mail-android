@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Settings
@@ -47,7 +48,8 @@ enum class DrawerDestination(
     INBOX(R.string.nav_inbox, Icons.Default.Inbox),
     SENT(R.string.nav_sent, Icons.AutoMirrored.Filled.Send),
     STARRED(R.string.nav_starred, Icons.Default.Star),
-    DRAFTS(R.string.nav_drafts, Icons.Default.Description)
+    DRAFTS(R.string.nav_drafts, Icons.Default.Description),
+    DELETED(R.string.nav_deleted, Icons.Default.Delete)
 }
 
 /** 左侧抽屉导航（对标网页版侧边栏） */
@@ -79,6 +81,10 @@ fun HomeScreen(
     val sentVm: MailboxViewModel = viewModel(
         key = "mailbox_1",
         factory = VmFactory { MailboxViewModel(container.mailRepository, container.settings, container.mailCache, 1) }
+    )
+    val deletedVm: me.huanjue.cloudmail.ui.deleted.DeletedViewModel = viewModel(
+        key = "deleted",
+        factory = VmFactory { me.huanjue.cloudmail.ui.deleted.DeletedViewModel() }
     )
 
     // 写信页发送成功后带回来的刷新信号
@@ -155,6 +161,13 @@ fun HomeScreen(
                     onMenuClick = { openDrawer() },
                     onEditDraft = { draftId -> onCompose(draftId) },
                     onNewDraft = { onCompose(null) }
+                )
+            }
+            DrawerDestination.DELETED -> {
+                me.huanjue.cloudmail.ui.deleted.DeletedScreen(
+                    viewModel = deletedVm,
+                    onMenuClick = { openDrawer() },
+                    onOpenEmail = onOpenEmail
                 )
             }
         }

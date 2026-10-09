@@ -7,6 +7,8 @@
     <string name="nav_sent">已发送</string>
     <string name="nav_starred">星标</string>
     <string name="nav_drafts">草稿箱</string>
+    <string name="nav_deleted">已删除</string>
+    <string name="empty_deleted">回收站是空的</string>
     <string name="nav_settings">设置</string>
     <string name="menu">菜单</string>
     <string name="back">返回</string>

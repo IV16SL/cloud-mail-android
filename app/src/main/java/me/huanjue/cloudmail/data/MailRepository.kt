@@ -58,6 +58,23 @@ class MailRepository {
         return unwrap { api.emailList(params) }
     }
 
+    /** 已删除邮件列表（回收站），后端 type=delete */
+    suspend fun deletedEmails(
+        accountId: Long,
+        cursorId: Long? = null,
+        size: Int = 20
+    ): EmailListData {
+        val params = mutableMapOf(
+            "accountId" to accountId.toString(),
+            "timeSort" to "0",
+            "size" to size.toString(),
+            "type" to "delete",
+            "full" to "0"
+        )
+        cursorId?.let { params["emailId"] = it.toString() }
+        return unwrap { api.emailList(params) }
+    }
+
     /**
      * 取单封邮件全文。后端游标是开区间（lt/gt），没有按 ID 查单封的接口，
      * 用 emailId-1 + 正序 + size=1 的技巧拿到目标邮件（含 content）。
@@ -83,6 +100,16 @@ class MailRepository {
     suspend fun deleteEmails(emailIds: List<Long>) {
         if (emailIds.isEmpty()) return
         unwrap { api.deleteEmails(emailIds.joinToString(",")) }
+    }
+
+    suspend fun restoreEmails(emailIds: List<Long>) {
+        if (emailIds.isEmpty()) return
+        unwrap { api.restoreEmails(IdListRequest(emailIds)) }
+    }
+
+    suspend fun permanentDeleteEmails(emailIds: List<Long>) {
+        if (emailIds.isEmpty()) return
+        unwrap { api.permanentDeleteEmails(emailIds.joinToString(",")) }
     }
 
     suspend fun sendEmail(request: SendEmailRequest) {

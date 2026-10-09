@@ -7,6 +7,8 @@
     <string name="nav_sent">送信済み</string>
     <string name="nav_starred">スター付き</string>
     <string name="nav_drafts">下書き</string>
+    <string name="nav_deleted">ゴミ箱</string>
+    <string name="empty_deleted">ゴミ箱は空です</string>
     <string name="nav_settings">設定</string>
     <string name="menu">メニュー</string>
     <string name="back">戻る</string>

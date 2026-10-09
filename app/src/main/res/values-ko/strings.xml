@@ -7,6 +7,8 @@
     <string name="nav_sent">보낸편지함</string>
     <string name="nav_starred">별표</string>
     <string name="nav_drafts">임시보관함</string>
+    <string name="nav_deleted">휴지통</string>
+    <string name="empty_deleted">휴지통이 비어 있습니다</string>
     <string name="nav_settings">설정</string>
     <string name="menu">메뉴</string>
     <string name="back">뒤로</string>

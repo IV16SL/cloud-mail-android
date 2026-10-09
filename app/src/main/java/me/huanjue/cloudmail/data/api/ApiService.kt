@@ -50,6 +50,12 @@ interface ApiService {
     @DELETE("email/delete")
     suspend fun deleteEmails(@Query("emailIds") emailIds: String): ApiResponse<Any>
 
+    @PUT("email/restore")
+    suspend fun restoreEmails(@Body body: IdListRequest): ApiResponse<Any>
+
+    @DELETE("email/permanent")
+    suspend fun permanentDeleteEmails(@Query("emailIds") emailIds: String): ApiResponse<Any>
+
     @POST("email/send")
     suspend fun sendEmail(@Body body: SendEmailRequest): ApiResponse<List<EmailItem>>
 

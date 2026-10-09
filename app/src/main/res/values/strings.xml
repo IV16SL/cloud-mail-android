@@ -7,6 +7,8 @@
     <string name="nav_sent">Sent</string>
     <string name="nav_starred">Starred</string>
     <string name="nav_drafts">Drafts</string>
+    <string name="nav_deleted">Trash</string>
+    <string name="empty_deleted">Trash is empty</string>
     <string name="nav_settings">Settings</string>
     <string name="menu">Menu</string>
     <string name="back">Back</string>
