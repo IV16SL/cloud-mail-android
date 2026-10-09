@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,6 +44,11 @@ fun DeletedScreen(
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // 每次进入页面都刷新，避免 ViewModel 缓存的空数据
+    LaunchedEffect(Unit) {
+        viewModel.load()
+    }
 
     Scaffold(
         topBar = {
