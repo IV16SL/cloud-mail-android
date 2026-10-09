@@ -58,7 +58,7 @@ class MailRepository {
         return unwrap { api.emailList(params) }
     }
 
-    /** 已删除邮件列表（回收站），后端 type=delete */
+    /** 已删除邮件列表（回收站），后端 type=delete，参数对齐网页端 */
     suspend fun deletedEmails(
         accountId: Long,
         cursorId: Long? = null,
@@ -66,6 +66,7 @@ class MailRepository {
     ): EmailListData {
         val params = mutableMapOf(
             "accountId" to accountId.toString(),
+            "allReceive" to "0",
             "timeSort" to "0",
             "size" to size.toString(),
             "type" to "delete",
