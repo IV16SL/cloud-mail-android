@@ -96,23 +96,40 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                // 按 targetValue 显示单色背景，Settled 时透明避免闪错颜色
-                                val (bgColor, icon, alignment) = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Triple(
+                                // 尝试用 offset 判断方向，即时显示颜色
+                                val offset = try {
+                                    dismissState.requireOffset()
+                                } catch (e: Exception) {
+                                    0f
+                                }
+                                val (bgColor, icon, alignment) = when {
+                                    offset > 0 -> Triple(
                                         Color(0xFF4CAF50),
                                         Icons.Default.Restore,
                                         Alignment.CenterStart
                                     )
-                                    SwipeToDismissBoxValue.EndToStart -> Triple(
+                                    offset < 0 -> Triple(
                                         Color.Red,
                                         Icons.Default.DeleteForever,
                                         Alignment.CenterEnd
                                     )
-                                    else -> Triple(
-                                        Color.Transparent,
-                                        Icons.Default.DeleteForever,
-                                        Alignment.CenterEnd
-                                    )
+                                    else -> when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Triple(
+                                            Color(0xFF4CAF50),
+                                            Icons.Default.Restore,
+                                            Alignment.CenterStart
+                                        )
+                                        SwipeToDismissBoxValue.EndToStart -> Triple(
+                                            Color.Red,
+                                            Icons.Default.DeleteForever,
+                                            Alignment.CenterEnd
+                                        )
+                                        else -> Triple(
+                                            Color.Transparent,
+                                            Icons.Default.DeleteForever,
+                                            Alignment.CenterEnd
+                                        )
+                                    }
                                 }
                                 Box(
                                     modifier = Modifier
