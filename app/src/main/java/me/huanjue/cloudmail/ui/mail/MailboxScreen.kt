@@ -37,7 +37,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -156,32 +155,20 @@ fun MailboxScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            // 加载时一律显示中间大圈（包括下拉刷新）
-            if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                // 下拉刷新：用中间大圈，不显示顶部小圈
-                val pullRefreshState = rememberPullToRefreshState()
-                PullToRefreshBox(
-                    isRefreshing = state.isLoading,
-                    onRefresh = { viewModel.refresh() },
-                    modifier = Modifier.fillMaxSize(),
-                    state = pullRefreshState,
-                    indicator = {
-                        // 下拉时显示小圈进度，刷新开始后隐藏（用中间大圈）
-                        if (!state.isLoading) {
-                            PullToRefreshDefaults.Indicator(
-                                modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter),
-                                isRefreshing = false,
-                                state = pullRefreshState,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+            // 下拉刷新用顶部小圈，初次加载（无数据）用中间大圈
+            val pullRefreshState = rememberPullToRefreshState()
+            PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize(),
+                state = pullRefreshState
+            ) {
+                // 初次加载显示大圈，下拉刷新用顶部小圈
+                if (state.isLoading && state.emails.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                ) {
-                    if (state.emails.isEmpty()) {
+                } else if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 if (state.searchKeyword.isNotBlank()) stringResource(R.string.mailbox_no_search_result)
@@ -263,7 +250,6 @@ fun MailboxScreen(
             }
         }
     }
-}
 }
 }
 
