@@ -115,15 +115,17 @@ fun DeletedScreen(
                 onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize()
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // 只有初次加载（无数据）时显示大圈，下拉刷新用顶部小圈
-                    if (state.isLoading && state.emails.isEmpty()) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    } else if (state.emails.isEmpty()) {
+                // 只有初次加载（无数据）时显示大圈，下拉刷新用顶部小圈
+                if (state.isLoading && state.emails.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (state.emails.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = stringResource(R.string.empty_deleted),
-                            modifier = Modifier.align(Alignment.Center)
+                            text = stringResource(R.string.empty_deleted)
                         )
+                    }
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
@@ -219,6 +221,5 @@ fun DeletedScreen(
             }
         }
     }
-}
 }
 }
