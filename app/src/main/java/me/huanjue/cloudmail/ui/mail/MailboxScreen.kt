@@ -65,7 +65,6 @@ import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
-import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -187,30 +186,18 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑删除：用官方组件，但在 confirm 里加位置校验，拦截速度误触发
-                        var rowWidth by remember { mutableStateOf(0) }
+                        // 左滑删除：50% 阈值
                         val dismissState = rememberSwipeToDismissBoxState(
                             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
                                 if (value == SwipeToDismissBoxValue.EndToStart) {
-                                    // 速度触发时位置可能没到 50%，必须校验
-                                    val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
-                                    if (rowWidth > 0 && offset <= -rowWidth * 0.5f) {
-                                        viewModel.deleteEmail(email.emailId)
-                                        true
-                                    } else {
-                                        false
-                                    }
+                                    viewModel.deleteEmail(email.emailId)
+                                    true
                                 } else {
                                     false
                                 }
                             }
                         )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .onSizeChanged { rowWidth = it.width }
-                        ) {
                             SwipeToDismissBox(
                                 state = dismissState,
                                 enableDismissFromStartToEnd = false,
@@ -265,7 +252,6 @@ fun MailboxScreen(
             }
         }
     }
-}
 }
 
 @Composable

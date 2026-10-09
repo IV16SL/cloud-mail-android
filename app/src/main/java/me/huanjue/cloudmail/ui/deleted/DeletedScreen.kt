@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import me.huanjue.cloudmail.R
 import me.huanjue.cloudmail.ui.mail.EmailRow
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.pointer.pointerInput
@@ -136,34 +135,23 @@ fun DeletedScreen(
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑彻底删除，右滑恢复：官方组件 + 位置校验拦截速度误触发
-                        var rowWidth by remember { mutableStateOf(0) }
+                        // 左滑彻底删除，右滑恢复
                         val dismissState = rememberSwipeToDismissBoxState(
                             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
-                                val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
                                 when (value) {
                                     SwipeToDismissBoxValue.EndToStart -> {
-                                        if (rowWidth > 0 && offset <= -rowWidth * 0.5f) {
-                                            viewModel.permanentDelete(email.emailId)
-                                            true
-                                        } else false
+                                        viewModel.permanentDelete(email.emailId)
+                                        true
                                     }
                                     SwipeToDismissBoxValue.StartToEnd -> {
-                                        if (rowWidth > 0 && offset >= rowWidth * 0.5f) {
-                                            viewModel.restore(email.emailId)
-                                            true
-                                        } else false
+                                        viewModel.restore(email.emailId)
+                                        true
                                     }
                                     else -> false
                                 }
                             }
                         )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .onSizeChanged { rowWidth = it.width }
-                        ) {
                             SwipeToDismissBox(
                                 state = dismissState,
                                 backgroundContent = {
@@ -205,5 +193,4 @@ fun DeletedScreen(
             }
         }
     }
-}
 }
