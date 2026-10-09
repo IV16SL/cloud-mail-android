@@ -2,31 +2,40 @@ package me.huanjue.cloudmail.ui.deleted
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,10 +52,18 @@ fun DeletedScreen(
     onOpenEmail: (accountId: Long, emailId: Long, type: Int) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    var searchText by remember { mutableStateOf("") }
+    val pullRefreshState = rememberPullToRefreshState()
 
     // 每次进入页面都刷新，避免 ViewModel 缓存的空数据
     LaunchedEffect(Unit) {
         viewModel.load()
+    }
+    // ViewModel 外部清空搜索时同步清空输入框
+    LaunchedEffect(state.searchKeyword) {
+        if (state.searchKeyword.isEmpty() && searchText.isNotEmpty()) {
+            searchText = ""
+        }
     }
 
     Scaffold(
@@ -61,20 +78,53 @@ fun DeletedScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (state.emails.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.empty_deleted),
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+            // 搜索框
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                    viewModel.onSearchInput(it)
+                },
+                placeholder = { Text(stringResource(R.string.mailbox_search_hint)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                },
+                trailingIcon = {
+                    if (searchText.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchText = ""
+                            viewModel.clearSearch()
+                        }) {
+                            Icon(Icons.Default.Clear, contentDescription = null)
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            PullToRefreshBox(
+                state = pullRefreshState,
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    } else if (state.emails.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.empty_deleted),
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
                         // 左滑彻底删除，右滑恢复
                         val dismissState = rememberSwipeToDismissBoxState(
@@ -96,7 +146,7 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                // 尝试用 offset 判断方向，即时显示颜色
+                                // 用 offset 即时判断方向，颜色跟手
                                 val offset = try {
                                     dismissState.requireOffset()
                                 } catch (e: Exception) {
@@ -168,4 +218,6 @@ fun DeletedScreen(
             }
         }
     }
+}
+}
 }

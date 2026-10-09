@@ -62,7 +62,8 @@ class MailRepository {
     suspend fun deletedEmails(
         accountId: Long,
         cursorId: Long? = null,
-        size: Int = 20
+        size: Int = 20,
+        keyword: String? = null
     ): EmailListData {
         val params = mutableMapOf(
             "accountId" to accountId.toString(),
@@ -73,6 +74,7 @@ class MailRepository {
             "full" to "0"
         )
         cursorId?.let { params["emailId"] = it.toString() }
+        keyword?.takeIf { it.isNotBlank() }?.let { params["keyword"] = it.trim() }
         return unwrap { api.emailList(params) }
     }
 

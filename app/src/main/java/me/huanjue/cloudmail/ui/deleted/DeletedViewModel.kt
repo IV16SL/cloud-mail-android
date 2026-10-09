@@ -14,7 +14,9 @@ data class DeletedUiState(
     val emails: List<EmailItem> = emptyList(),
     val accounts: List<MailAccount> = emptyList(),
     val currentAccount: MailAccount? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val searchKeyword: String = ""
 )
 
 class DeletedViewModel(
@@ -34,19 +36,37 @@ class DeletedViewModel(
             try {
                 val accounts = mailRepository.accounts()
                 val account = accounts.firstOrNull()
+                val keyword = _uiState.value.searchKeyword.takeIf { it.isNotBlank() }
                 val emails = if (account != null) {
-                    mailRepository.deletedEmails(account.accountId).list ?: emptyList()
+                    mailRepository.deletedEmails(account.accountId, keyword = keyword).list ?: emptyList()
                 } else emptyList()
-                _uiState.value = DeletedUiState(
+                _uiState.value = _uiState.value.copy(
                     emails = emails,
                     accounts = accounts,
                     currentAccount = account,
-                    isLoading = false
+                    isLoading = false,
+                    isRefreshing = false
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+                _uiState.value = _uiState.value.copy(isLoading = false, isRefreshing = false)
             }
         }
+    }
+
+    fun refresh() {
+        _uiState.value = _uiState.value.copy(isRefreshing = true)
+        load()
+    }
+
+    fun onSearchInput(keyword: String) {
+        _uiState.value = _uiState.value.copy(searchKeyword = keyword)
+        // 防抖：简单起见直接搜，数据量不大
+        load()
+    }
+
+    fun clearSearch() {
+        _uiState.value = _uiState.value.copy(searchKeyword = "")
+        load()
     }
 
     fun restore(emailId: Long) {
