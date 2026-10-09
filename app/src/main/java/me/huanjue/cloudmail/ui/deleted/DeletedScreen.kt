@@ -116,7 +116,8 @@ fun DeletedScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (state.isLoading) {
+                    // 下拉刷新时只显示顶部小圈，不显示中间大圈
+                    if (state.isLoading && !state.isRefreshing) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     } else if (state.emails.isEmpty()) {
                         Text(
