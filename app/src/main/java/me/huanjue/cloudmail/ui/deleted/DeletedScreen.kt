@@ -76,10 +76,9 @@ fun DeletedScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑彻底删除，右滑恢复；velocityThreshold 设极高，只认位置不认速度
+                        // 左滑彻底删除，右滑恢复；阈值 70%（velocity 无法单独关，提高位置阈值来防误触）
                         val dismissState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
-                            velocityThreshold = { 10000.dp },
+                            positionalThreshold = { totalDistance -> totalDistance * 0.7f },
                             confirmValueChange = { value ->
                                 when (value) {
                                     SwipeToDismissBoxValue.EndToStart -> {
@@ -97,40 +96,23 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                // 尝试用 offset 判断方向，即时显示颜色
-                                val offset = try {
-                                    dismissState.requireOffset()
-                                } catch (e: Exception) {
-                                    0f
-                                }
-                                val (bgColor, icon, alignment) = when {
-                                    offset > 0 -> Triple(
+                                // 按 targetValue 显示单色背景，Settled 时透明
+                                val (bgColor, icon, alignment) = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Triple(
                                         Color(0xFF4CAF50),
                                         Icons.Default.Restore,
                                         Alignment.CenterStart
                                     )
-                                    offset < 0 -> Triple(
+                                    SwipeToDismissBoxValue.EndToStart -> Triple(
                                         Color.Red,
                                         Icons.Default.DeleteForever,
                                         Alignment.CenterEnd
                                     )
-                                    else -> when (dismissState.targetValue) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Triple(
-                                            Color(0xFF4CAF50),
-                                            Icons.Default.Restore,
-                                            Alignment.CenterStart
-                                        )
-                                        SwipeToDismissBoxValue.EndToStart -> Triple(
-                                            Color.Red,
-                                            Icons.Default.DeleteForever,
-                                            Alignment.CenterEnd
-                                        )
-                                        else -> Triple(
-                                            Color.Transparent,
-                                            Icons.Default.DeleteForever,
-                                            Alignment.CenterEnd
-                                        )
-                                    }
+                                    else -> Triple(
+                                        Color.Transparent,
+                                        Icons.Default.DeleteForever,
+                                        Alignment.CenterEnd
+                                    )
                                 }
                                 Box(
                                     modifier = Modifier
