@@ -65,7 +65,11 @@ fun HomeScreen(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var destination by remember { mutableStateOf(DrawerDestination.INBOX) }
+    // 用 rememberSaveable 存 tab，下钻到详情页再返回时能回到原 tab，而不是重置到收件箱
+    var destinationOrdinal by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(DrawerDestination.INBOX.ordinal) }
+    var destination
+        get() = DrawerDestination.entries[destinationOrdinal]
+        set(value) { destinationOrdinal = value.ordinal }
 
     fun openDrawer() = scope.launch { drawerState.open() }
     fun closeDrawer() = scope.launch { drawerState.close() }

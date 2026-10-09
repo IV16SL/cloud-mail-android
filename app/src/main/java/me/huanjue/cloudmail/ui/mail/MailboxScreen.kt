@@ -16,6 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -186,16 +190,46 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        EmailRow(
-                            email = email,
-                            onClick = {
-                                // 对标网页版：只有收件箱打开才标已读
-                                if (state.type == 0) viewModel.markRead(email.emailId)
-                                val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                onOpenEmail(accountId, email.emailId, state.type)
-                            },
-                            onToggleStar = { viewModel.toggleStar(email) }
+                        // 左滑删除
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteEmail(email.emailId)
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
                         )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(8.dp),
+                                    contentAlignment = androidx.compose.ui.Alignment.CenterEnd
+                                ) {
+                                    androidx.compose.material3.Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = null,
+                                        tint = Color.Red
+                                    )
+                                }
+                            }
+                        ) {
+                            EmailRow(
+                                email = email,
+                                onClick = {
+                                    // 对标网页版：只有收件箱打开才标已读
+                                    if (state.type == 0) viewModel.markRead(email.emailId)
+                                    val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                    onOpenEmail(accountId, email.emailId, state.type)
+                                },
+                                onToggleStar = { viewModel.toggleStar(email) }
+                            )
+                        }
                         HorizontalDivider()
                     }
                     if (state.isLoadingMore) {
