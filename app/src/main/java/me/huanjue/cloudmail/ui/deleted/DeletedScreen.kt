@@ -2,6 +2,7 @@ package me.huanjue.cloudmail.ui.deleted
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -96,34 +97,32 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                // 按 targetValue 显示单色背景，Settled 时透明
-                                val (bgColor, icon, alignment) = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Triple(
-                                        Color(0xFF4CAF50),
-                                        Icons.Default.Restore,
-                                        Alignment.CenterStart
-                                    )
-                                    SwipeToDismissBoxValue.EndToStart -> Triple(
-                                        Color.Red,
-                                        Icons.Default.DeleteForever,
-                                        Alignment.CenterEnd
-                                    )
-                                    else -> Triple(
-                                        Color.Transparent,
-                                        Icons.Default.DeleteForever,
-                                        Alignment.CenterEnd
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(bgColor)
-                                        .padding(16.dp),
-                                    contentAlignment = alignment
-                                ) {
-                                    if (bgColor != Color.Transparent) {
+                                // 左右分半静态背景：左绿（恢复）右红（彻底删除），不依赖 state 最稳
+                                Row(modifier = Modifier.fillMaxSize()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxSize()
+                                            .background(Color(0xFF4CAF50))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
                                         Icon(
-                                            imageVector = icon,
+                                            imageVector = Icons.Default.Restore,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxSize()
+                                            .background(Color.Red)
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteForever,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
