@@ -68,7 +68,7 @@ import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
-import androidx.compose.foundation.layout.onSizeChanged
+import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
