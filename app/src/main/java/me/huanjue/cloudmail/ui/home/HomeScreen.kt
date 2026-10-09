@@ -65,10 +65,8 @@ fun HomeScreen(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    // 用 rememberSaveable 存 tab，下钻到详情页再返回时能回到原 tab，而不是重置到收件箱
+    // 用 rememberSaveable 存 tab ordinal，下钻到详情页再返回时能回到原 tab，而不是重置到收件箱
     var destinationOrdinal by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(DrawerDestination.INBOX.ordinal) }
-    val destination get() = DrawerDestination.entries[destinationOrdinal]
-    fun setDestination(value: DrawerDestination) { destinationOrdinal = value.ordinal }
 
     fun openDrawer() = scope.launch { drawerState.open() }
     fun closeDrawer() = scope.launch { drawerState.close() }
@@ -111,9 +109,9 @@ fun HomeScreen(
                     NavigationDrawerItem(
                         label = { Text(stringResource(d.titleRes)) },
                         icon = { Icon(d.icon, contentDescription = null) },
-                        selected = d == destination,
+                        selected = d == DrawerDestination.entries[destinationOrdinal],
                         onClick = {
-                            setDestination(d)
+                            destinationOrdinal = d.ordinal
                             closeDrawer()
                         },
                         modifier = Modifier.padding(horizontal = 12.dp)
@@ -135,12 +133,12 @@ fun HomeScreen(
             }
         }
     ) {
-        when (destination) {
+        when (DrawerDestination.entries[destinationOrdinal]) {
             DrawerDestination.INBOX, DrawerDestination.SENT -> {
-                val vm = if (destination == DrawerDestination.INBOX) inboxVm else sentVm
+                val vm = if (DrawerDestination.entries[destinationOrdinal] == DrawerDestination.INBOX) inboxVm else sentVm
                 MailboxScreen(
                     viewModel = vm,
-                    title = stringResource(destination.titleRes),
+                    title = stringResource(DrawerDestination.entries[destinationOrdinal].titleRes),
                     onMenuClick = { openDrawer() },
                     onOpenEmail = onOpenEmail,
                     onCompose = { onCompose(null) }
