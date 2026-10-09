@@ -167,7 +167,8 @@ fun MailboxScreen(
                     isRefreshing = false,
                     onRefresh = { viewModel.refresh() },
                     modifier = Modifier.fillMaxSize(),
-                    state = pullRefreshState
+                    state = pullRefreshState,
+                    indicator = {}  // 禁用小圈，用中间大圈
                 ) {
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

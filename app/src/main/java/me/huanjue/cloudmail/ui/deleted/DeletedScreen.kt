@@ -113,7 +113,8 @@ fun DeletedScreen(
                 state = pullRefreshState,
                 isRefreshing = false,  // 不显示顶部小圈，用中间大圈
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                indicator = {}  // 彻底禁用小圈，连下拉手势时也不显示
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // 下拉刷新时也显示中间大圈
