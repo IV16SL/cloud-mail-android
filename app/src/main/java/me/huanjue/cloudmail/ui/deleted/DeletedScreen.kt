@@ -2,7 +2,6 @@ package me.huanjue.cloudmail.ui.deleted
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -77,9 +76,9 @@ fun DeletedScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑彻底删除，右滑恢复；阈值 70%（velocity 无法单独关，提高位置阈值来防误触）
+                        // 左滑彻底删除，右滑恢复
                         val dismissState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance * 0.7f },
+                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
                                 when (value) {
                                     SwipeToDismissBoxValue.EndToStart -> {
@@ -97,32 +96,51 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                // 左右分半静态背景：左绿（恢复）右红（彻底删除），不依赖 state 最稳
-                                Row(modifier = Modifier.fillMaxSize()) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxSize()
-                                            .background(Color(0xFF4CAF50))
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Restore,
-                                            contentDescription = null,
-                                            tint = Color.White
+                                // 用 offset 即时判断方向，颜色跟手
+                                val offset = try {
+                                    dismissState.requireOffset()
+                                } catch (e: Exception) {
+                                    0f
+                                }
+                                val (bgColor, icon, alignment) = when {
+                                    offset > 0 -> Triple(
+                                        Color(0xFF4CAF50),
+                                        Icons.Default.Restore,
+                                        Alignment.CenterStart
+                                    )
+                                    offset < 0 -> Triple(
+                                        Color.Red,
+                                        Icons.Default.DeleteForever,
+                                        Alignment.CenterEnd
+                                    )
+                                    else -> when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Triple(
+                                            Color(0xFF4CAF50),
+                                            Icons.Default.Restore,
+                                            Alignment.CenterStart
+                                        )
+                                        SwipeToDismissBoxValue.EndToStart -> Triple(
+                                            Color.Red,
+                                            Icons.Default.DeleteForever,
+                                            Alignment.CenterEnd
+                                        )
+                                        else -> Triple(
+                                            Color.Transparent,
+                                            Icons.Default.DeleteForever,
+                                            Alignment.CenterEnd
                                         )
                                     }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxSize()
-                                            .background(Color.Red)
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(bgColor)
+                                        .padding(16.dp),
+                                    contentAlignment = alignment
+                                ) {
+                                    if (bgColor != Color.Transparent) {
                                         Icon(
-                                            imageVector = Icons.Default.DeleteForever,
+                                            imageVector = icon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
