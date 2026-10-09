@@ -169,7 +169,6 @@ fun MailboxScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = pullRefreshState
                 ) {
-                    Box(Modifier.fillMaxSize()) {
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
