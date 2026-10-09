@@ -27,6 +27,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -111,10 +112,20 @@ fun DeletedScreen(
             )
             PullToRefreshBox(
                 state = pullRefreshState,
-                isRefreshing = false,  // 不显示顶部小圈，用中间大圈
+                isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize(),
-                indicator = {}  // 彻底禁用小圈，连下拉手势时也不显示
+                indicator = {
+                    // 下拉时显示小圈进度，刷新开始后隐藏（用中间大圈）
+                    if (!state.isRefreshing) {
+                        PullToRefreshDefaults.Indicator(
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter),
+                            isRefreshing = false,
+                            state = pullRefreshState,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // 下拉刷新时也显示中间大圈

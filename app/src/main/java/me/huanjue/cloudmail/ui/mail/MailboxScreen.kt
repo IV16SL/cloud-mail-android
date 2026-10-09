@@ -37,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -164,11 +165,21 @@ fun MailboxScreen(
                 // 下拉刷新：用中间大圈，不显示顶部小圈
                 val pullRefreshState = rememberPullToRefreshState()
                 PullToRefreshBox(
-                    isRefreshing = false,
+                    isRefreshing = state.isLoading,
                     onRefresh = { viewModel.refresh() },
                     modifier = Modifier.fillMaxSize(),
                     state = pullRefreshState,
-                    indicator = {}  // 禁用小圈，用中间大圈
+                    indicator = {
+                        // 下拉时显示小圈进度，刷新开始后隐藏（用中间大圈）
+                        if (!state.isLoading) {
+                            PullToRefreshDefaults.Indicator(
+                                modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter),
+                                isRefreshing = false,
+                                state = pullRefreshState,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 ) {
                     if (state.emails.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
