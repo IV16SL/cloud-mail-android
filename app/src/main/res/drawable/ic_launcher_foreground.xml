@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 自适应图标前景：Material mail 信封，居中放在 66dp 安全区内 -->
+<!-- 自适应图标前景：白信封 + Bitwarden 风格长投影 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group
-        android:scaleX="2.4"
-        android:scaleY="2.4"
-        android:translateX="25.2"
-        android:translateY="25.2">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-    </group>
+    <!-- 长投影 -->
+    <path
+        android:fillColor="#0F3FA8"
+        android:fillAlpha="0.55"
+        android:pathData="M 20.1,79.4 L 83.1,81.4 A 6.8,6.8 0 0 0 89.9,74.7 L 89.9,33.3 A 6.8,6.8 0 0 0 87.9,28.6 L 108,48.7 L 108,108 L 48.7,108 Z" />
+    <!-- 白信封 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 24.9,26.6 L 76.4,26.6 A 6.8,6.8 0 0 1 83.1,33.3 L 83.1,74.7 A 6.8,6.8 0 0 1 76.4,81.4 L 24.9,81.4 A 6.8,6.8 0 0 1 18.1,74.7 L 18.1,33.3 A 6.8,6.8 0 0 1 24.9,26.6 Z" />
+    <!-- V 形翻盖 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#175DDC"
+        android:strokeWidth="7.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 27.0,37.6 L 54.0,55.3 L 81.0,37.6" />
 </vector>
