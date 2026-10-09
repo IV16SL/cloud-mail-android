@@ -125,5 +125,6 @@ object NetworkModule {
 suspend fun <T> unwrap(call: suspend () -> ApiResponse<T>): T {
     val resp = call()
     if (!resp.isOk) throw ApiException(resp.code, resp.message ?: me.huanjue.cloudmail.CloudMailApp.appContext.getString(me.huanjue.cloudmail.R.string.err_request_failed))
+    @Suppress("UNCHECKED_CAST")
     return resp.data as T
 }

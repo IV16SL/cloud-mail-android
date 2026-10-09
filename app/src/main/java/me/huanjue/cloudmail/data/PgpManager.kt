@@ -238,17 +238,20 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                 eddsaAlg, edGen.generateKeyPair(), Date()
             )
             val xGen = java.security.KeyPairGenerator.getInstance("X25519", bcProvider())
+            @Suppress("DEPRECATION")
             encryptionKeyPair = JcaPGPKeyPair(
                 PGPPublicKey.ECDH, xGen.generateKeyPair(), Date()
             )
         } else {
             val keyGen = java.security.KeyPairGenerator.getInstance("RSA", bcProvider())
             keyGen.initialize(3072, SecureRandom())
+            @Suppress("DEPRECATION")
             signingKeyPair = JcaPGPKeyPair(
-                PGPPublicKey.RSA_SIGN, keyGen.generateKeyPair(), Date()
+                PGPPublicKey.RSA_GENERAL, keyGen.generateKeyPair(), Date()
             )
+            @Suppress("DEPRECATION")
             encryptionKeyPair = JcaPGPKeyPair(
-                PGPPublicKey.RSA_ENCRYPT, keyGen.generateKeyPair(), Date()
+                PGPPublicKey.RSA_GENERAL, keyGen.generateKeyPair(), Date()
             )
         }
         val encryptor = JcePBESecretKeyEncryptorBuilder(
@@ -343,16 +346,16 @@ class PgpManager(private val context: Context, private val settings: AppSettings
             // 收集诊断信息：邮件是加密给哪些 keyID 的，本地有哪些 keyID
             val emailKeyIds = encList.encryptedDataObjects.asSequence()
                 .filterIsInstance<PGPPublicKeyEncryptedData>()
-                .map { "%016X".format(it.keyID) }
+                .map { "%016X".format(it.keyId) }
                 .toList()
-            val localKeyIds = secretKeys.map { "%016X".format(it.keyID) }
+            val localKeyIds = secretKeys.map { "%016X".format(it.keyId) }
             // 逐把钥匙试：加密可能用的是子钥匙，不能只认 master key
             // 口令候选：用户输入的优先，空口令兜底（防止导入时误判保护状态）
             val pwCandidates = if (pw.isNotEmpty()) listOf(pw, CharArray(0)) else listOf(pw)
             for (sk in secretKeys) {
                 val encData = encList.encryptedDataObjects.asSequence()
                     .filterIsInstance<PGPPublicKeyEncryptedData>()
-                    .firstOrNull { it.keyID == sk.keyID }
+                    .firstOrNull { it.keyId == sk.keyId }
                     ?: continue
                 matchedKey = true
                 matchedSk = sk
@@ -361,7 +364,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                     val s2k = sk.s2K
                     android.util.Log.w(
                         "PgpManager",
-                        "key ${"%016X".format(sk.keyID)} s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} encAlg=${sk.keyEncryptionAlgorithm}"
+                        "key ${"%016X".format(sk.keyId)} s2kType=${s2k?.type} hash=${s2k?.hashAlgorithm} encAlg=${sk.keyEncryptionAlgorithm}"
                     )
                 } catch (_: Exception) {
                 }
@@ -378,7 +381,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
                         // 记录详细异常：类名 + message，帮助定位是口令错还是算法不支持
                         android.util.Log.w(
                             "PgpManager",
-                            "decrypt failed key=${"%016X".format(sk.keyID)} pwIdx=$pwIdx err=${e.javaClass.simpleName}: ${e.message}"
+                            "decrypt failed key=${"%016X".format(sk.keyId)} pwIdx=$pwIdx err=${e.javaClass.simpleName}: ${e.message}"
                         )
                         lastErr = e
                     }
@@ -430,7 +433,7 @@ class PgpManager(private val context: Context, private val settings: AppSettings
     private fun keyInfoOf(key: PGPSecretKey): PgpKeyInfo {
         val fp = key.publicKey.fingerprint.joinToString("") { "%02X".format(it) }
         val userId = key.userIDs.asSequence().firstOrNull() ?: ""
-        val keyId = "%016X".format(key.keyID)
+        val keyId = "%016X".format(key.keyId)
         return PgpKeyInfo(userId, fp, keyId)
     }
 
