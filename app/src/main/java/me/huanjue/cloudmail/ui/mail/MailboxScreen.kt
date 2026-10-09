@@ -166,7 +166,7 @@ fun MailboxScreen(
             // 下拉刷新用顶部小圈，初次加载（无数据）用中间大圈
             val pullRefreshState = rememberPullToRefreshState()
             PullToRefreshBox(
-                isRefreshing = state.isLoading,
+                isRefreshing = state.isLoading && state.emails.isNotEmpty(),
                 onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize(),
                 state = pullRefreshState
