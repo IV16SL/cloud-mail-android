@@ -72,6 +72,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -353,5 +354,46 @@ fun EmailRow(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, name = "EmailRow 未读")
+@Composable
+private fun EmailRowUnreadPreview() {
+    MaterialTheme {
+        EmailRow(
+            email = EmailItem(
+                emailId = 1,
+                sendEmail = "zhangsan@example.com",
+                name = "张三",
+                subject = "周报：本周工作进展",
+                listText = "本周完成了 PGP 加密功能的联调，明天提测…",
+                createTime = "2026-10-10 09:30",
+                unread = 0,
+                isStar = 1,
+                type = 0
+            ),
+            onClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "EmailRow 已读")
+@Composable
+private fun EmailRowReadPreview() {
+    MaterialTheme {
+        EmailRow(
+            email = EmailItem(
+                emailId = 2,
+                sendEmail = "lisi@example.com",
+                subject = "Re: 接口文档更新",
+                listText = "收到，文档已同步到最新版本",
+                createTime = "昨天 18:20",
+                unread = 1,
+                isStar = 0,
+                type = 0
+            ),
+            onClick = {}
+        )
     }
 }
