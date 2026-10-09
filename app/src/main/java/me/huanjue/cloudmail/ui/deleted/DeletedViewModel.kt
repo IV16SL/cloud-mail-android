@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import me.huanjue.cloudmail.CloudMailApp
+import me.huanjue.cloudmail.data.MailRepository
 import me.huanjue.cloudmail.data.model.EmailItem
 import me.huanjue.cloudmail.data.model.MailAccount
 
@@ -17,8 +17,9 @@ data class DeletedUiState(
     val isLoading: Boolean = false
 )
 
-class DeletedViewModel : ViewModel() {
-    private val repo = CloudMailApp.mailRepository
+class DeletedViewModel(
+    private val mailRepository: MailRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DeletedUiState())
     val uiState: StateFlow<DeletedUiState> = _uiState.asStateFlow()
@@ -31,10 +32,10 @@ class DeletedViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val accounts = repo.accounts()
+                val accounts = mailRepository.accounts()
                 val account = accounts.firstOrNull()
                 val emails = if (account != null) {
-                    repo.deletedEmails(account.accountId).emails
+                    mailRepository.deletedEmails(account.accountId).list ?: emptyList()
                 } else emptyList()
                 _uiState.value = DeletedUiState(
                     emails = emails,
@@ -51,7 +52,7 @@ class DeletedViewModel : ViewModel() {
     fun restore(emailId: Long) {
         viewModelScope.launch {
             try {
-                repo.restoreEmails(listOf(emailId))
+                mailRepository.restoreEmails(listOf(emailId))
                 load()
             } catch (e: Exception) {
                 // ignore
@@ -62,7 +63,7 @@ class DeletedViewModel : ViewModel() {
     fun permanentDelete(emailId: Long) {
         viewModelScope.launch {
             try {
-                repo.permanentDeleteEmails(listOf(emailId))
+                mailRepository.permanentDeleteEmails(listOf(emailId))
                 load()
             } catch (e: Exception) {
                 // ignore

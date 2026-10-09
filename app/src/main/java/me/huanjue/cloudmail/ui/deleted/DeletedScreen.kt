@@ -2,6 +2,8 @@ package me.huanjue.cloudmail.ui.deleted
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.huanjue.cloudmail.R
@@ -74,11 +77,11 @@ fun DeletedScreen(
                                 }
                             )
                             // 恢复和彻底删除按钮
-                            androidx.compose.foundation.layout.Row(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                                horizontalArrangement = Arrangement.End
                             ) {
                                 IconButton(onClick = { viewModel.restore(email.emailId) }) {
                                     Icon(Icons.Default.Restore, contentDescription = "Restore")
@@ -87,7 +90,7 @@ fun DeletedScreen(
                                     Icon(
                                         Icons.Default.DeleteForever,
                                         contentDescription = "Delete forever",
-                                        tint = androidx.compose.ui.graphics.Color.Red
+                                        tint = Color.Red
                                     )
                                 }
                             }

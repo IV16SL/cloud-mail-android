@@ -84,7 +84,7 @@ fun HomeScreen(
     )
     val deletedVm: me.huanjue.cloudmail.ui.deleted.DeletedViewModel = viewModel(
         key = "deleted",
-        factory = VmFactory { me.huanjue.cloudmail.ui.deleted.DeletedViewModel() }
+        factory = VmFactory { me.huanjue.cloudmail.ui.deleted.DeletedViewModel(container.mailRepository) }
     )
 
     // 写信页发送成功后带回来的刷新信号
