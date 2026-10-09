@@ -311,7 +311,7 @@ fun EmailRow(
         // 右侧：日期在左，图标列在右
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = email.createTime?.substring(5, 16) ?: "",
+                text = email.createTime?.let { if (it.length >= 16) it.substring(5, 16) else it } ?: "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
