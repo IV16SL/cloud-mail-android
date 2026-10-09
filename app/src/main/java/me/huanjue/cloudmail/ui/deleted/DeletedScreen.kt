@@ -76,9 +76,10 @@ fun DeletedScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑彻底删除，右滑恢复
+                        // 左滑彻底删除，右滑恢复；velocityThreshold 设极高，只认位置不认速度
                         val dismissState = rememberSwipeToDismissBoxState(
                             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
+                            velocityThreshold = { 10000.dp },
                             confirmValueChange = { value ->
                                 when (value) {
                                     SwipeToDismissBoxValue.EndToStart -> {
