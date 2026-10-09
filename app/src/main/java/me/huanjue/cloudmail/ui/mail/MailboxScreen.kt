@@ -186,7 +186,6 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑删除：50% 阈值
                         val dismissState = rememberSwipeToDismissBoxState(
                             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
@@ -198,43 +197,43 @@ fun MailboxScreen(
                                 }
                             }
                         )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                backgroundContent = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Red)
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Delete,
-                                            contentDescription = null,
-                                            tint = Color.White
-                                        )
-                                    }
-                                }
-                            ) {
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.surface)
+                                        .fillMaxSize()
+                                        .background(Color.Red)
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.CenterEnd
                                 ) {
-                                    EmailRow(
-                                        email = email,
-                                        onClick = {
-                                            if (state.type == 0) viewModel.markRead(email.emailId)
-                                            val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                            onOpenEmail(accountId, email.emailId, state.type)
-                                        },
-                                        onToggleStar = { viewModel.toggleStar(email) }
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = null,
+                                        tint = Color.White
                                     )
                                 }
                             }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                EmailRow(
+                                    email = email,
+                                    onClick = {
+                                        if (state.type == 0) viewModel.markRead(email.emailId)
+                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                        onOpenEmail(accountId, email.emailId, state.type)
+                                    },
+                                    onToggleStar = { viewModel.toggleStar(email) }
+                                )
+                            }
                         }
                         HorizontalDivider()
+                    }
                     }
                     if (state.isLoadingMore) {
                         item {

@@ -135,7 +135,6 @@ fun DeletedScreen(
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑彻底删除，右滑恢复
                         val dismissState = rememberSwipeToDismissBoxState(
                             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
@@ -152,42 +151,42 @@ fun DeletedScreen(
                                 }
                             }
                         )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                backgroundContent = {
-                                    val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
-                                    val (bgColor, icon, alignment) = when {
-                                        offset > 0 -> Triple(Color(0xFF4CAF50), Icons.Default.Restore, Alignment.CenterStart)
-                                        offset < 0 -> Triple(Color.Red, Icons.Default.DeleteForever, Alignment.CenterEnd)
-                                        else -> Triple(Color.Transparent, Icons.Default.DeleteForever, Alignment.CenterEnd)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(bgColor)
-                                            .padding(16.dp),
-                                        contentAlignment = alignment
-                                    ) {
-                                        Icon(imageVector = icon, contentDescription = null, tint = Color.White)
-                                    }
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val offset = try { dismissState.requireOffset() } catch (e: Exception) { 0f }
+                                val (bgColor, icon, alignment) = when {
+                                    offset > 0 -> Triple(Color(0xFF4CAF50), Icons.Default.Restore, Alignment.CenterStart)
+                                    offset < 0 -> Triple(Color.Red, Icons.Default.DeleteForever, Alignment.CenterEnd)
+                                    else -> Triple(Color.Transparent, Icons.Default.DeleteForever, Alignment.CenterEnd)
                                 }
-                            ) {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.surface)
+                                        .fillMaxSize()
+                                        .background(bgColor)
+                                        .padding(16.dp),
+                                    contentAlignment = alignment
                                 ) {
-                                    EmailRow(
-                                        email = email,
-                                        onClick = {
-                                            val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                            onOpenEmail(accountId, email.emailId, 0)
-                                        }
-                                    )
+                                    Icon(imageVector = icon, contentDescription = null, tint = Color.White)
                                 }
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                EmailRow(
+                                    email = email,
+                                    onClick = {
+                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                        onOpenEmail(accountId, email.emailId, 0)
+                                    }
+                                )
                             }
                         }
                         HorizontalDivider()
+                    }
                     }
                 }
             }
