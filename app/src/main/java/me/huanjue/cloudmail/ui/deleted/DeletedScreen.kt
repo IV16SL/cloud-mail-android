@@ -2,6 +2,7 @@ package me.huanjue.cloudmail.ui.deleted
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -90,30 +91,38 @@ fun DeletedScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {
-                                val (bgColor, icon, alignment) = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Triple(
-                                        Color(0xFF4CAF50),
-                                        Icons.Default.Restore,
-                                        Alignment.CenterStart
-                                    )
-                                    else -> Triple(
-                                        Color.Red,
-                                        Icons.Default.DeleteForever,
-                                        Alignment.CenterEnd
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(bgColor)
-                                        .padding(16.dp),
-                                    contentAlignment = alignment
+                                // 左右分半：右滑露绿（恢复），左滑露红（彻底删除）
+                                Row(
+                                    modifier = Modifier.fillMaxSize()
                                 ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = Color.White
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxSize()
+                                            .background(Color(0xFF4CAF50))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Restore,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxSize()
+                                            .background(Color.Red)
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteForever,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
                                 }
                             }
                         ) {
