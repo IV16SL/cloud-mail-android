@@ -234,7 +234,6 @@ fun MailboxScreen(
                         }
                         HorizontalDivider()
                     }
-                    }
                     if (state.isLoadingMore) {
                         item {
                             Box(
@@ -246,6 +245,7 @@ fun MailboxScreen(
                                 CircularProgressIndicator()
                             }
                         }
+                    }
                     }
                 }
             }
