@@ -1,9 +1,7 @@
 package me.huanjue.cloudmail.ui.deleted
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,9 +16,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,31 +70,65 @@ fun DeletedScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        Column {
-                            EmailRow(
-                                email = email,
-                                onClick = {
-                                    val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                    onOpenEmail(accountId, email.emailId, 0)
+                        // 左滑彻底删除，右滑恢复
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
+                            confirmValueChange = { value ->
+                                when (value) {
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        viewModel.permanentDelete(email.emailId)
+                                        true
+                                    }
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        viewModel.restore(email.emailId)
+                                        true
+                                    }
+                                    else -> false
                                 }
-                            )
-                            // 恢复和彻底删除按钮
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                IconButton(onClick = { viewModel.restore(email.emailId) }) {
-                                    Icon(Icons.Default.Restore, contentDescription = "Restore")
-                                }
-                                IconButton(onClick = { viewModel.permanentDelete(email.emailId) }) {
-                                    Icon(
+                            }
+                        )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val (bgColor, icon, alignment) = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Triple(
+                                        Color(0xFF4CAF50),
+                                        Icons.Default.Restore,
+                                        Alignment.CenterStart
+                                    )
+                                    else -> Triple(
+                                        Color.Red,
                                         Icons.Default.DeleteForever,
-                                        contentDescription = "Delete forever",
-                                        tint = Color.Red
+                                        Alignment.CenterEnd
                                     )
                                 }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(bgColor)
+                                        .padding(16.dp),
+                                    contentAlignment = alignment
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                EmailRow(
+                                    email = email,
+                                    onClick = {
+                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                        onOpenEmail(accountId, email.emailId, 0)
+                                    }
+                                )
                             }
                         }
                         HorizontalDivider()
