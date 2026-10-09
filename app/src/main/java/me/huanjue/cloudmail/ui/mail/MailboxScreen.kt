@@ -219,19 +219,25 @@ fun MailboxScreen(
                                         tint = Color.White
                                     )
                                 }
-                            },
-                            modifier = Modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
+                            }
                         ) {
-                            EmailRow(
-                                email = email,
-                                onClick = {
-                                    // 对标网页版：只有收件箱打开才标已读
-                                    if (state.type == 0) viewModel.markRead(email.emailId)
-                                    val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                    onOpenEmail(accountId, email.emailId, state.type)
-                                },
-                                onToggleStar = { viewModel.toggleStar(email) }
-                            )
+                            // 内容加实底色，盖住未滑动时的红色背景
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
+                            ) {
+                                EmailRow(
+                                    email = email,
+                                    onClick = {
+                                        // 对标网页版：只有收件箱打开才标已读
+                                        if (state.type == 0) viewModel.markRead(email.emailId)
+                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                        onOpenEmail(accountId, email.emailId, state.type)
+                                    },
+                                    onToggleStar = { viewModel.toggleStar(email) }
+                                )
+                            }
                         }
                         HorizontalDivider()
                     }
