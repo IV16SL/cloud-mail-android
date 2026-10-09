@@ -26,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.MainScope
@@ -244,7 +246,11 @@ fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
                 navArgument("accountId") { type = NavType.LongType },
                 navArgument("emailId") { type = NavType.LongType },
                 navArgument("type") { type = NavType.IntType }
-            )
+            ),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
         ) { backStackEntry ->
             DetailScreen(
                 accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L,
@@ -262,7 +268,11 @@ fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
                     nullable = true
                     defaultValue = null
                 }
-            )
+            ),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
         ) { backStackEntry ->
             val draftId = backStackEntry.arguments?.getString("draftId")
             val vm: ComposeViewModel = viewModel(
@@ -288,7 +298,13 @@ fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
                 onBack = { navController.popBackStack() }
             )
         }
-        composable(Routes.SETTINGS) {
+        composable(
+            route = Routes.SETTINGS,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
+        ) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onLogout = {
@@ -299,7 +315,13 @@ fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
                 onPgpKey = { navController.navigate(Routes.PGP_KEY) }
             )
         }
-        composable(Routes.PGP_KEY) {
+        composable(
+            route = Routes.PGP_KEY,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
+        ) {
             PgpKeyScreen(onBack = { navController.popBackStack() })
         }
     }
