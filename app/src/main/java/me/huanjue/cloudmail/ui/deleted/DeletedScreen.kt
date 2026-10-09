@@ -111,13 +111,13 @@ fun DeletedScreen(
             )
             PullToRefreshBox(
                 state = pullRefreshState,
-                isRefreshing = state.isRefreshing,
+                isRefreshing = false,  // 不显示顶部小圈，用中间大圈
                 onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize()
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // 下拉刷新时只显示顶部小圈，不显示中间大圈
-                    if (state.isLoading && !state.isRefreshing) {
+                    // 下拉刷新时也显示中间大圈
+                    if (state.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     } else if (state.emails.isEmpty()) {
                         Text(
