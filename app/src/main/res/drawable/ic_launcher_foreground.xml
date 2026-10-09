@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 自适应图标前景：白信封 + Bitwarden 风格长投影 -->
+<!-- 自适应图标前景：白信封，居中 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 长投影 -->
-    <path
-        android:fillColor="#0F3FA8"
-        android:fillAlpha="0.55"
-        android:pathData="M 20.1,79.4 L 83.1,81.4 A 6.8,6.8 0 0 0 89.9,74.7 L 89.9,33.3 A 6.8,6.8 0 0 0 87.9,28.6 L 108,48.7 L 108,108 L 48.7,108 Z" />
     <!-- 白信封 -->
     <path
         android:fillColor="#FFFFFF"
