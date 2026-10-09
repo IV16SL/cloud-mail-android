@@ -1,7 +1,10 @@
 package me.huanjue.cloudmail.ui.mail
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
@@ -18,9 +22,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -65,6 +68,8 @@ import me.huanjue.cloudmail.R
 import kotlinx.coroutines.launch
 import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
+import androidx.compose.foundation.layout.onSizeChanged
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,48 +187,58 @@ fun MailboxScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                     items(state.emails, key = { it.emailId }) { email ->
-                        // 左滑删除
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            // 滑到 50% 才触发删除，防止误操作
-                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
-                            confirmValueChange = { value ->
-                                if (value == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.deleteEmail(email.emailId)
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = false,
-                            backgroundContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Red)
-                                        .padding(16.dp),
-                                    contentAlignment = androidx.compose.ui.Alignment.CenterEnd
-                                ) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.Filled.Delete,
-                                        contentDescription = null,
-                                        tint = Color.White
+                        // 左滑删除：手写实现，只按位置判 50%，不用速度触发，防止误触
+                        val offsetX = remember { Animatable(0f) }
+                        val scope = rememberCoroutineScope()
+                        var rowWidth by remember { mutableStateOf(0) }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onSizeChanged { rowWidth = it.width }
+                                .pointerInput(email.emailId) {
+                                    detectHorizontalDragGestures(
+                                        onDragEnd = {
+                                            scope.launch {
+                                                if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
+                                                    viewModel.deleteEmail(email.emailId)
+                                                }
+                                                offsetX.animateTo(0f, tween(200))
+                                            }
+                                        },
+                                        onDragCancel = {
+                                            scope.launch { offsetX.animateTo(0f, tween(200)) }
+                                        },
+                                        onHorizontalDrag = { _, dragAmount ->
+                                            scope.launch {
+                                                val newVal = (offsetX.value + dragAmount).coerceAtMost(0f)
+                                                offsetX.snapTo(newVal)
+                                            }
+                                        }
                                     )
                                 }
-                            }
                         ) {
-                            // 内容加实底色，盖住未滑动时的红色背景
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Red)
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
+                                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                                    .background(MaterialTheme.colorScheme.surface)
                             ) {
                                 EmailRow(
                                     email = email,
                                     onClick = {
-                                        // 对标网页版：只有收件箱打开才标已读
                                         if (state.type == 0) viewModel.markRead(email.emailId)
                                         val accountId = state.currentAccount?.accountId ?: return@EmailRow
                                         onOpenEmail(accountId, email.emailId, state.type)
