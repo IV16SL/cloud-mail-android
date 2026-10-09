@@ -193,6 +193,8 @@ fun MailboxScreen(
                     items(state.emails, key = { it.emailId }) { email ->
                         // 左滑删除
                         val dismissState = rememberSwipeToDismissBoxState(
+                            // 滑到 50% 才触发删除，防止误操作
+                            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
                             confirmValueChange = { value ->
                                 if (value == SwipeToDismissBoxValue.EndToStart) {
                                     viewModel.deleteEmail(email.emailId)
