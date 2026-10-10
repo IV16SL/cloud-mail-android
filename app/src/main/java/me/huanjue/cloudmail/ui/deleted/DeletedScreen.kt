@@ -25,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.huanjue.cloudmail.R
@@ -47,6 +49,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -119,11 +122,31 @@ fun DeletedScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
+            // 缩放动画是官方文档的自定义做法：默认 indicator 不带缩放，必须自己包一层
+            val scaleFraction = {
+                if (state.isRefreshing) 1f
+                else LinearOutSlowInEasing.transform(pullRefreshState.distanceFraction).coerceIn(0f, 1f)
+            }
             PullToRefreshBox(
                 state = pullRefreshState,
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                indicator = {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer {
+                                scaleX = scaleFraction()
+                                scaleY = scaleFraction()
+                            }
+                    ) {
+                        PullToRefreshDefaults.Indicator(
+                            state = pullRefreshState,
+                            isRefreshing = state.isRefreshing
+                        )
+                    }
+                }
             ) {
                 // 只有初次加载（无数据）时显示大圈，下拉刷新用顶部小圈
                 if (state.isLoading && state.emails.isEmpty()) {
