@@ -284,7 +284,7 @@ fun MailboxScreen(
                             // Gmail 式底色：图标 + 动作文字
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .matchParentSize()
                                     .background(Color(0xFFD93025))
                                     .padding(horizontal = 24.dp),
                                 contentAlignment = Alignment.CenterEnd

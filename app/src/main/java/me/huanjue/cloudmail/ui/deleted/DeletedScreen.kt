@@ -245,7 +245,7 @@ fun DeletedScreen(
                             // Gmail 式底色：图标 + 动作文字
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .matchParentSize()
                                     .background(bgColor)
                                     .padding(horizontal = 24.dp),
                                 contentAlignment = if (swipingRight) Alignment.CenterStart else Alignment.CenterEnd
