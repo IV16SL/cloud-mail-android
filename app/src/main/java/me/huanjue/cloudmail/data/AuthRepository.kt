@@ -139,22 +139,22 @@ class AuthRepository(private val settings: AppSettings) {
         return settings.setActiveUser(userId)
     }
 
-    /** App 启动时恢复会话：有活动会话直接用（含 API 前缀探测）；旧版单 token 自动迁移 */
-    suspend fun restoreSession(): Boolean {
+    /** App 启动时恢复会话：有活动会话直接用；连不上后端且有本地会话时进离线模式 */
+    suspend fun restoreSession(): RestoreResult {
         val serverUrl = settings.getServerUrl()
-        if (serverUrl.isNullOrBlank()) return false
+        if (serverUrl.isNullOrBlank()) return RestoreResult.NoSession
+        NetworkModule.serverUrl = serverUrl
+        val active = settings.getActiveSession()
+        val legacy = if (active == null) settings.getLegacyToken() else null
+        if (active == null && legacy.isNullOrBlank()) return RestoreResult.NoSession
+        // 先装好 token + 上次的前缀：离线也能进主页看缓存，网络恢复后请求直接可用
+        NetworkModule.token = active?.token ?: legacy
+        NetworkModule.apiPrefix = settings.getApiPrefix()
         return try {
-            NetworkModule.serverUrl = serverUrl
             NetworkModule.apiPrefix = NetworkModule.detectApiPrefix(serverUrl)
-            val active = settings.getActiveSession()
-            if (active != null) {
-                NetworkModule.token = active.token
-                true
-            } else {
-                // 旧版单 token：先保证能进，顺手尝试迁移成会话
-                val legacy = settings.getLegacyToken()
-                if (legacy.isNullOrBlank()) return false
-                NetworkModule.token = legacy
+            settings.setApiPrefix(NetworkModule.apiPrefix)
+            if (active == null && !legacy.isNullOrBlank()) {
+                // 旧版单 token：顺手尝试迁移成会话
                 try {
                     val info = unwrap { api.loginUserInfo() }
                     settings.saveSession(
@@ -167,10 +167,21 @@ class AuthRepository(private val settings: AppSettings) {
                 } catch (_: Exception) {
                     // 迁移失败不阻塞本次启动，下次再试
                 }
-                true
             }
+            RestoreResult.Online
         } catch (_: Exception) {
-            false
+            // 探测失败：有本地会话 → 离线模式，不踢回登录页
+            RestoreResult.Offline
         }
     }
+}
+
+/** 会话恢复结果：区分"没登录过"和"有会话但连不上服务器" */
+sealed interface RestoreResult {
+    /** 无服务器地址或无本地会话 → 去登录页 */
+    data object NoSession : RestoreResult
+    /** 探测成功 → 主页在线模式 */
+    data object Online : RestoreResult
+    /** 有本地会话但连不上后端 → 主页离线模式（看缓存，不踢登录） */
+    data object Offline : RestoreResult
 }

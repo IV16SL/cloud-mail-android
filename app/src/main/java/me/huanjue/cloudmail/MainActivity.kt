@@ -95,13 +95,15 @@ class MainActivity : ComponentActivity() {
         // 这样开屏动画播完时数据已就绪，AppNav 无需再转圈；capabilities 里有 pgp 开关，
         // 详情页靠它判断是否显示解密按钮，不预热的话冷启动打开加密邮件只会显示密文
         val app = applicationContext as CloudMailApp
-        val startupDone = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
+        val startupDone = kotlinx.coroutines.flow.MutableStateFlow<me.huanjue.cloudmail.data.RestoreResult?>(null)
         lifecycleScope.launch {
-            val ok = try {
+            val result = try {
                 app.container.authRepository.restoreSession()
-            } catch (_: Exception) { false }
+            } catch (_: Exception) { me.huanjue.cloudmail.data.RestoreResult.NoSession }
+            isOfflineMode.value = result == me.huanjue.cloudmail.data.RestoreResult.Offline
             // 预热邮件头缓存（读 DataStore，很快）
-            if (ok) {
+            // 在线或离线模式都预热缓存；离线时网络调用直接抛异常，被各自 try 接住
+            if (result != me.huanjue.cloudmail.data.RestoreResult.NoSession) {
                 try {
                     val accounts = app.container.mailRepository.accounts()
                     val account = accounts.firstOrNull()
@@ -116,7 +118,7 @@ class MainActivity : ComponentActivity() {
                     app.container.capabilitiesRepository.refresh()
                 } catch (_: Exception) { }
             }
-            startupDone.value = ok
+            startupDone.value = result
         }
 
         // 401（token 失效）时清掉本地会话并踢回登录页
@@ -141,6 +143,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** 全局离线标记：启动时有本地会话但连不上后端。任一刷新成功后清掉 */
+val isOfflineMode = androidx.compose.runtime.mutableStateOf(false)
+
 /** 简单的全局 401 事件总线 */
 object UnauthorizedBus {
     private val listeners = mutableSetOf<() -> Unit>()
@@ -150,7 +155,7 @@ object UnauthorizedBus {
 }
 
 @Composable
-fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
+fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<me.huanjue.cloudmail.data.RestoreResult?>) {
     val context = LocalContext.current
     val app = context.applicationContext as CloudMailApp
     val container = app.container
@@ -159,8 +164,10 @@ fun AppNav(startupDone: kotlinx.coroutines.flow.StateFlow<Boolean?>) {
     // 开屏时已预热，这里直接用结果，无需再转圈
     val restored by startupDone.collectAsState()
     val startDestination = when (restored) {
-        true -> Routes.HOME
-        false -> Routes.login()
+        // 在线和离线都进主页；离线模式看缓存，不踢回登录页
+        me.huanjue.cloudmail.data.RestoreResult.Online,
+        me.huanjue.cloudmail.data.RestoreResult.Offline -> Routes.HOME
+        me.huanjue.cloudmail.data.RestoreResult.NoSession -> Routes.login()
         null -> null // 还在预热中（极少见，开屏 1.1s 通常够）
     }
 

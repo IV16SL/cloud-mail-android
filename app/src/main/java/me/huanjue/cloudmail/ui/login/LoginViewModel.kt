@@ -76,6 +76,7 @@ class LoginViewModel(
                 // 先探测 API 前缀（/api 或根路径），连不上就直接报错
                 val prefix = NetworkModule.detectApiPrefix(normalized)
                 settings.setServerUrl(normalized)
+                settings.setApiPrefix(prefix)
                 NetworkModule.serverUrl = normalized
                 NetworkModule.apiPrefix = prefix
                 NetworkModule.token = null

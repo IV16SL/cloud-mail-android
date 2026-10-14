@@ -21,6 +21,7 @@ class AppSettings(private val context: Context) {
 
     companion object {
         private val SERVER_URL = stringPreferencesKey("server_url")
+        private val API_PREFIX = stringPreferencesKey("api_prefix")
         private val TOKEN = stringPreferencesKey("token") // 旧版单 token，迁移用
         private val SESSIONS = stringPreferencesKey("user_sessions")
         private val ACTIVE_USER = longPreferencesKey("active_user_id")
@@ -170,7 +171,16 @@ class AppSettings(private val context: Context) {
             prefs.remove(SESSIONS)
             prefs.remove(ACTIVE_USER)
             prefs.remove(TOKEN)
+            prefs.remove(API_PREFIX)
         }
+    }
+
+    /** 上次探测成功的 API 前缀（/api 或 ""），离线启动时复用 */
+    suspend fun getApiPrefix(): String =
+        context.dataStore.data.map { it[API_PREFIX] ?: "" }.first()
+
+    suspend fun setApiPrefix(prefix: String) {
+        context.dataStore.edit { prefs -> prefs[API_PREFIX] = prefix }
     }
 
     // ---------- 旧版单 token 兼容（已废弃，保留给迁移逻辑） ----------

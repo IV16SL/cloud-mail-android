@@ -101,10 +101,15 @@ class MailboxViewModel(
         refresh()
     }
 
-    /** 从缓存读账号+邮件头（冷启动秒开用） */
+    /** 从缓存读账号+邮件头（冷启动秒开用；离线时账号列表也走缓存） */
     private suspend fun loadCached(): Triple<List<MailAccount>, MailAccount?, List<EmailItem>>? {
         return try {
-            val accounts = mailRepository.accounts()
+            val accounts = try {
+                mailRepository.accounts()
+            } catch (_: Exception) {
+                // 离线：用上次缓存的账号列表
+                mailCache.getAccounts() ?: return null
+            }
             val account = accounts.firstOrNull() ?: return null
             val emails = mailCache.get(account.accountId, _uiState.value.type)
                 ?: return null
@@ -132,10 +137,13 @@ class MailboxViewModel(
                         keyword = keyword
                     ).list ?: emptyList()
                 } else emptyList()
-                // 非搜索时写缓存（搜索结果不缓存）
+                // 非搜索时写缓存（搜索结果不缓存）；账号列表始终缓存，供离线模式用
                 if (keyword == null && account != null) {
                     mailCache.put(account.accountId, _uiState.value.type, emails)
                 }
+                mailCache.putAccounts(accounts)
+                // 刷新成功 → 网络是通的，清掉离线标记
+                me.huanjue.cloudmail.isOfflineMode.value = false
                 _uiState.value = _uiState.value.copy(
                     accounts = accounts,
                     currentAccount = account,

@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import me.huanjue.cloudmail.data.model.EmailItem
+import me.huanjue.cloudmail.data.model.MailAccount
 
 /**
  * 邮件列表头缓存：冷启动秒开。
@@ -61,5 +62,31 @@ class MailCache(private val context: Context) {
                 it.remove(key(accountId, 1))
             }
         } catch (_: Exception) { }
+    }
+
+    // ---------- 账号列表缓存（离线模式用） ----------
+
+    private val accountsKey = stringPreferencesKey("mail_cache_accounts")
+    private val accountsType = object : TypeToken<List<MailAccount>>() {}.type
+
+    /** 读账号缓存，没有返回 null */
+    suspend fun getAccounts(): List<MailAccount>? {
+        return try {
+            val json = context.dataStore.data.map { it[accountsKey] }.first()
+                ?: return null
+            val list: List<MailAccount> = gson.fromJson(json, accountsType) ?: return null
+            list.ifEmpty { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** 写账号缓存 */
+    suspend fun putAccounts(accounts: List<MailAccount>) {
+        try {
+            context.dataStore.edit { it[accountsKey] = gson.toJson(accounts) }
+        } catch (_: Exception) {
+            // 缓存失败不影响主流程
+        }
     }
 }

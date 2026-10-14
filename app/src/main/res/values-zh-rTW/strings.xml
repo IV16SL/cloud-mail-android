@@ -228,4 +228,5 @@
     <string name="login_passkey_unavailable">通行密鑰不可用：%1$s</string>
     <string name="login_passkey_failed">通行密鑰登錄失敗：%1$s</string>
     <string name="login_passkey_bad_type">返回的不是 PublicKey 憑證：%1$s</string>
+    <string name="offline_mode_banner">離線模式，目前顯示快取郵件</string>
 </resources>

@@ -228,4 +228,5 @@
     <string name="login_passkey_unavailable">パスキーが利用できません：%1$s</string>
     <string name="login_passkey_failed">パスキーログインに失敗しました：%1$s</string>
     <string name="login_passkey_bad_type">PublicKey 資格情報ではありません：%1$s</string>
+    <string name="offline_mode_banner">オフラインモード — キャッシュを表示中</string>
 </resources>
