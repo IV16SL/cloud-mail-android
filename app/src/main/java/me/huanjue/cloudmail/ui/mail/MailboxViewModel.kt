@@ -27,7 +27,8 @@ data class MailboxUiState(
     val hasMore: Boolean = true,
     val type: Int = 0, // 0=收件箱 1=已发送
     val error: String? = null,
-    val searchKeyword: String = ""
+    val searchKeyword: String = "",
+    val notice: String? = null
 )
 
 class MailboxViewModel(
@@ -219,20 +220,45 @@ class MailboxViewModel(
         }
     }
 
-    fun deleteEmail(emailId: Long, onDone: () -> Unit = {}) {
+    /**
+     * 乐观删除：先立刻从列表移除并弹提示，后台再同步服务端；
+     * 同步失败则把邮件恢复回原位并报错。
+     */
+    fun deleteEmail(emailId: Long) {
+        val current = _uiState.value.emails
+        val index = current.indexOfFirst { it.emailId == emailId }
+        if (index == -1) return
+        val removed = current[index]
+        _uiState.value = _uiState.value.copy(
+            emails = current.filter { it.emailId != emailId }
+        )
         viewModelScope.launch {
             try {
                 mailRepository.deleteEmails(listOf(emailId))
+                // 同步更新缓存，避免下次冷启动闪现已删邮件
+                val account = _uiState.value.currentAccount
+                if (account != null) {
+                    mailCache.put(account.accountId, _uiState.value.type, _uiState.value.emails)
+                }
                 _uiState.value = _uiState.value.copy(
-                    emails = _uiState.value.emails.filter { it.emailId != emailId }
+                    notice = settings.getString(me.huanjue.cloudmail.R.string.mailbox_deleted_notice)
                 )
-                onDone()
             } catch (e: ApiException) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                restoreDeleted(index, removed, e.message)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: ""))
+                restoreDeleted(
+                    index, removed,
+                    settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: "")
+                )
             }
         }
+    }
+
+    /** 删除同步失败：把邮件恢复回原位并报错 */
+    private fun restoreDeleted(index: Int, removed: EmailItem, error: String?) {
+        val list = _uiState.value.emails.toMutableList()
+        list.add(index.coerceAtMost(list.size), removed)
+        _uiState.value = _uiState.value.copy(emails = list, error = error)
     }
 
     fun toggleStar(email: EmailItem) {
@@ -268,5 +294,9 @@ class MailboxViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun clearNotice() {
+        _uiState.value = _uiState.value.copy(notice = null)
     }
 }
