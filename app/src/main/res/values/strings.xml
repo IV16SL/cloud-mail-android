@@ -234,4 +234,6 @@
     <string name="mailbox_deleted_notice">Deleted</string>
     <string name="deleted_permanent_notice">Permanently deleted</string>
     <string name="deleted_restored_notice">Restored</string>
+    <string name="mailbox_selection_close">Close selection</string>
+    <string name="mailbox_select_all">Select all</string>
 </resources>

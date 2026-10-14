@@ -234,4 +234,6 @@
     <string name="mailbox_deleted_notice">削除しました</string>
     <string name="deleted_permanent_notice">完全に削除しました</string>
     <string name="deleted_restored_notice">復元しました</string>
+    <string name="mailbox_selection_close">選択を閉じる</string>
+    <string name="mailbox_select_all">すべて選択</string>
 </resources>

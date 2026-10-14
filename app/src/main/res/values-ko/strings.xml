@@ -234,4 +234,6 @@
     <string name="mailbox_deleted_notice">삭제됨</string>
     <string name="deleted_permanent_notice">영구 삭제됨</string>
     <string name="deleted_restored_notice">복원됨</string>
+    <string name="mailbox_selection_close">선택 닫기</string>
+    <string name="mailbox_select_all">전체 선택</string>
 </resources>

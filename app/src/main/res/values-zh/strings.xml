@@ -234,4 +234,6 @@
     <string name="mailbox_deleted_notice">已删除</string>
     <string name="deleted_permanent_notice">已彻底删除</string>
     <string name="deleted_restored_notice">已恢复</string>
+    <string name="mailbox_selection_close">关闭选择</string>
+    <string name="mailbox_select_all">全选</string>
 </resources>

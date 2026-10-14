@@ -28,7 +28,8 @@ data class MailboxUiState(
     val type: Int = 0, // 0=收件箱 1=已发送
     val error: String? = null,
     val searchKeyword: String = "",
-    val notice: String? = null
+    val notice: String? = null,
+    val selectedIds: Set<Long> = emptySet()
 )
 
 class MailboxViewModel(
@@ -298,5 +299,70 @@ class MailboxViewModel(
 
     fun clearNotice() {
         _uiState.value = _uiState.value.copy(notice = null)
+    }
+
+    // ---------- 长按多选（Gmail 式） ----------
+
+    /** 切换选中；长按进入选择模式 */
+    fun toggleSelect(emailId: Long) {
+        val current = _uiState.value.selectedIds
+        _uiState.value = _uiState.value.copy(
+            selectedIds = if (emailId in current) current - emailId else current + emailId
+        )
+    }
+
+    /** 清空选择（退出选择模式） */
+    fun clearSelection() {
+        _uiState.value = _uiState.value.copy(selectedIds = emptySet())
+    }
+
+    /** 全选当前列表 */
+    fun selectAll() {
+        _uiState.value = _uiState.value.copy(
+            selectedIds = _uiState.value.emails.map { it.emailId }.toSet()
+        )
+    }
+
+    /**
+     * 批量删除选中：乐观移除，后台同步，底部弹提示；
+     * 同步失败则恢复回原位并报错。
+     */
+    fun deleteSelected() {
+        val ids = _uiState.value.selectedIds
+        if (ids.isEmpty()) return
+        val current = _uiState.value.emails
+        val removed = current.filter { it.emailId in ids }
+        val positions = removed.map { current.indexOf(it) }
+        _uiState.value = _uiState.value.copy(
+            emails = current.filter { it.emailId !in ids },
+            selectedIds = emptySet()
+        )
+        viewModelScope.launch {
+            try {
+                mailRepository.deleteEmails(ids.toList())
+                val account = _uiState.value.currentAccount
+                if (account != null) {
+                    mailCache.put(account.accountId, _uiState.value.type, _uiState.value.emails)
+                }
+                _uiState.value = _uiState.value.copy(
+                    notice = settings.getString(me.huanjue.cloudmail.R.string.mailbox_deleted_notice)
+                )
+            } catch (e: ApiException) {
+                val list = _uiState.value.emails.toMutableList()
+                removed.forEachIndexed { i, email ->
+                    list.add(positions[i].coerceAtMost(list.size), email)
+                }
+                _uiState.value = _uiState.value.copy(emails = list, error = e.message)
+            } catch (e: Exception) {
+                val list = _uiState.value.emails.toMutableList()
+                removed.forEachIndexed { i, email ->
+                    list.add(positions[i].coerceAtMost(list.size), email)
+                }
+                _uiState.value = _uiState.value.copy(
+                    emails = list,
+                    error = settings.getString(me.huanjue.cloudmail.R.string.common_network_error, e.message ?: "")
+                )
+            }
+        }
     }
 }

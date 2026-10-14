@@ -19,11 +19,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.ui.graphics.Color
@@ -80,6 +82,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.Checkbox
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +125,13 @@ fun MailboxScreen(
         }
     }
 
+    val selectionMode = state.selectedIds.isNotEmpty()
+
+    // 选择模式下返回键退出选择，不退出页面
+    BackHandler(enabled = selectionMode) {
+        viewModel.clearSelection()
+    }
+
     // 滑到底部自动加载下一页
     LaunchedEffect(listState, state.hasMore) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -132,14 +145,43 @@ fun MailboxScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
+            if (selectionMode) {
+                // 选择模式：Gmail 式操作栏
+                TopAppBar(
+                    title = { Text(state.selectedIds.size.toString()) },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.mailbox_selection_close)
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.selectAll() }) {
+                            Icon(
+                                Icons.Default.SelectAll,
+                                contentDescription = stringResource(R.string.mailbox_select_all)
+                            )
+                        }
+                        IconButton(onClick = { viewModel.deleteSelected() }) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.common_delete)
+                            )
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(title) },
+                    navigationIcon = {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCompose) {
@@ -311,12 +353,24 @@ fun MailboxScreen(
                             ) {
                                 EmailRow(
                                     email = email,
+                                    selectionMode = selectionMode,
+                                    selected = email.emailId in state.selectedIds,
                                     onClick = {
-                                        if (state.type == 0) viewModel.markRead(email.emailId)
-                                        val accountId = state.currentAccount?.accountId ?: return@EmailRow
-                                        onOpenEmail(accountId, email.emailId, state.type)
+                                        if (selectionMode) {
+                                            viewModel.toggleSelect(email.emailId)
+                                        } else {
+                                            if (state.type == 0) viewModel.markRead(email.emailId)
+                                            val accountId = state.currentAccount?.accountId ?: return@EmailRow
+                                            onOpenEmail(accountId, email.emailId, state.type)
+                                        }
                                     },
-                                    onToggleStar = { viewModel.toggleStar(email) }
+                                    onLongClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.toggleSelect(email.emailId)
+                                    },
+                                    onToggleStar = {
+                                        if (!selectionMode) viewModel.toggleStar(email)
+                                    }
                                 )
                             }
                         }
@@ -341,21 +395,40 @@ fun MailboxScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EmailRow(
     email: EmailItem,
     onClick: () -> Unit,
-    onToggleStar: () -> Unit = {}
+    onToggleStar: () -> Unit = {},
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null
 ) {
     // 对标网页版：只有收件箱显示未读点/加粗
     val showUnread = email.type == 0 && email.isUnread
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .background(
+                if (selected) MaterialTheme.colorScheme.secondaryContainer
+                else Color.Transparent
+            )
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(16.dp, 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 选择模式：左侧复选框（Gmail 式）
+        if (selectionMode) {
+            Checkbox(
+                checked = selected,
+                onCheckedChange = null,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (email.type == 0) {
