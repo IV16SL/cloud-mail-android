@@ -229,4 +229,9 @@
     <string name="login_passkey_failed">Passkey login failed: %1$s</string>
     <string name="login_passkey_bad_type">Not a PublicKey credential: %1$s</string>
     <string name="offline_mode_banner">Offline mode \u2014 showing cached mail</string>
+    <string name="swipe_delete_forever">Delete forever</string>
+    <string name="swipe_restore">Restore</string>
+    <string name="mailbox_deleted_notice">Deleted</string>
+    <string name="deleted_permanent_notice">Permanently deleted</string>
+    <string name="deleted_restored_notice">Restored</string>
 </resources>

@@ -229,4 +229,9 @@
     <string name="login_passkey_failed">通行密鑰登錄失敗：%1$s</string>
     <string name="login_passkey_bad_type">返回的不是 PublicKey 憑證：%1$s</string>
     <string name="offline_mode_banner">離線模式，目前顯示快取郵件</string>
+    <string name="swipe_delete_forever">徹底刪除</string>
+    <string name="swipe_restore">還原</string>
+    <string name="mailbox_deleted_notice">已刪除</string>
+    <string name="deleted_permanent_notice">已徹底刪除</string>
+    <string name="deleted_restored_notice">已還原</string>
 </resources>

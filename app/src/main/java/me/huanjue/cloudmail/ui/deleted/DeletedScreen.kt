@@ -22,6 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -50,12 +52,19 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +76,16 @@ fun DeletedScreen(
     val state by viewModel.uiState.collectAsState()
     var searchText by remember { mutableStateOf("") }
     val pullRefreshState = rememberPullToRefreshState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // 操作成功的一次性文字提示（底部弹出）
+    LaunchedEffect(state.notice) {
+        state.notice?.let {
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            viewModel.clearNotice()
+        }
+    }
 
     // 每次进入页面都刷新，避免 ViewModel 缓存的空数据
     LaunchedEffect(Unit) {
@@ -80,6 +99,7 @@ fun DeletedScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.nav_deleted)) },
@@ -165,23 +185,41 @@ fun DeletedScreen(
                         // 左滑彻底删除，右滑恢复：手写，只按 50% 位置触发
                         val offsetX = remember { Animatable(0f) }
                         val scope = rememberCoroutineScope()
+                        val haptics = LocalHapticFeedback.current
                         var rowWidth by remember { mutableStateOf(0) }
+                        var pastThreshold by remember { mutableStateOf(0) } // -1=左 0=无 1=右
                         val bgColor by remember {
                             derivedStateOf {
                                 when {
-                                    offsetX.value > 0 -> Color(0xFF4CAF50)
-                                    offsetX.value < 0 -> Color.Red
+                                    offsetX.value > 0 -> Color(0xFF34A853)
+                                    offsetX.value < 0 -> Color(0xFFD93025)
                                     else -> Color.Transparent
                                 }
                             }
                         }
+                        val swipingRight = offsetX.value >= 0
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .onSizeChanged { rowWidth = it.width }
                                 .draggable(
                                     state = rememberDraggableState { delta ->
-                                        scope.launch { offsetX.snapTo(offsetX.value + delta) }
+                                        scope.launch {
+                                            val newOffset = offsetX.value + delta
+                                            // 划过 50% 阈值时震动一下（Gmail 式反馈）
+                                            val crossed = if (rowWidth > 0) {
+                                                when {
+                                                    newOffset <= -rowWidth * 0.5f -> -1
+                                                    newOffset >= rowWidth * 0.5f -> 1
+                                                    else -> 0
+                                                }
+                                            } else 0
+                                            if (crossed != pastThreshold) {
+                                                pastThreshold = crossed
+                                                if (crossed != 0) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                            offsetX.snapTo(newOffset)
+                                        }
                                     },
                                     orientation = Orientation.Horizontal,
                                     onDragStopped = {
@@ -192,19 +230,43 @@ fun DeletedScreen(
                                                     offsetX.value >= rowWidth * 0.5f -> viewModel.restore(email.emailId)
                                                 }
                                             }
-                                            offsetX.animateTo(0f, tween(200))
+                                            pastThreshold = 0
+                                            offsetX.animateTo(
+                                                0f,
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
+                                            )
                                         }
                                     }
                                 )
                         ) {
+                            // Gmail 式底色：图标 + 动作文字
                             Box(
-                                modifier = Modifier.fillMaxSize().background(bgColor).padding(16.dp),
-                                contentAlignment = if (offsetX.value >= 0) Alignment.CenterStart else Alignment.CenterEnd
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(bgColor)
+                                    .padding(horizontal = 24.dp),
+                                contentAlignment = if (swipingRight) Alignment.CenterStart else Alignment.CenterEnd
                             ) {
-                                Icon(
-                                    imageVector = if (offsetX.value >= 0) Icons.Default.Restore else Icons.Default.DeleteForever,
-                                    contentDescription = null, tint = Color.White
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (swipingRight) Icons.Default.Restore else Icons.Default.DeleteForever,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(
+                                            if (swipingRight) R.string.swipe_restore
+                                            else R.string.swipe_delete_forever
+                                        ),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                             Box(
                                 modifier = Modifier.fillMaxWidth()

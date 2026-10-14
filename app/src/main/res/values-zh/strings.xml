@@ -229,4 +229,9 @@
     <string name="login_passkey_failed">通行密钥登录失败：%1$s</string>
     <string name="login_passkey_bad_type">返回的不是 PublicKey 凭证：%1$s</string>
     <string name="offline_mode_banner">离线模式，当前显示缓存邮件</string>
+    <string name="swipe_delete_forever">彻底删除</string>
+    <string name="swipe_restore">恢复</string>
+    <string name="mailbox_deleted_notice">已删除</string>
+    <string name="deleted_permanent_notice">已彻底删除</string>
+    <string name="deleted_restored_notice">已恢复</string>
 </resources>

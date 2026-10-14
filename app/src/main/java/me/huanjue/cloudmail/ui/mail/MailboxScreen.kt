@@ -71,12 +71,15 @@ import me.huanjue.cloudmail.data.PgpManager
 import me.huanjue.cloudmail.data.model.EmailItem
 import kotlin.math.roundToInt
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +108,14 @@ fun MailboxScreen(
         state.error?.let {
             scope.launch { snackbarHostState.showSnackbar(it) }
             viewModel.clearError()
+        }
+    }
+
+    // 删除/操作成功的一次性文字提示（底部弹出）
+    LaunchedEffect(state.notice) {
+        state.notice?.let {
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            viewModel.clearNotice()
         }
     }
 
@@ -232,7 +243,9 @@ fun MailboxScreen(
                         // 左滑删除：手写，只按 50% 位置触发，不看速度
                         val offsetX = remember { Animatable(0f) }
                         val scope = rememberCoroutineScope()
+                        val haptics = LocalHapticFeedback.current
                         var rowWidth by remember { mutableStateOf(0) }
+                        var pastThreshold by remember { mutableStateOf(false) }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -240,7 +253,14 @@ fun MailboxScreen(
                                 .draggable(
                                     state = rememberDraggableState { delta ->
                                         scope.launch {
-                                            offsetX.snapTo((offsetX.value + delta).coerceAtMost(0f))
+                                            val newOffset = (offsetX.value + delta).coerceAtMost(0f)
+                                            // 划过 50% 阈值时震动一下（Gmail 式反馈）
+                                            val crossed = rowWidth > 0 && newOffset <= -rowWidth * 0.5f
+                                            if (crossed != pastThreshold) {
+                                                pastThreshold = crossed
+                                                if (crossed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                            offsetX.snapTo(newOffset)
                                         }
                                     },
                                     orientation = Orientation.Horizontal,
@@ -249,16 +269,40 @@ fun MailboxScreen(
                                             if (rowWidth > 0 && offsetX.value <= -rowWidth * 0.5f) {
                                                 viewModel.deleteEmail(email.emailId)
                                             }
-                                            offsetX.animateTo(0f, tween(200))
+                                            pastThreshold = false
+                                            offsetX.animateTo(
+                                                0f,
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
+                                            )
                                         }
                                     }
                                 )
                         ) {
+                            // Gmail 式底色：图标 + 动作文字
                             Box(
-                                modifier = Modifier.fillMaxSize().background(Color.Red).padding(16.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFD93025))
+                                    .padding(horizontal = 24.dp),
                                 contentAlignment = Alignment.CenterEnd
                             ) {
-                                Icon(imageVector = Icons.Filled.Delete, contentDescription = null, tint = Color.White)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.common_delete),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                             Box(
                                 modifier = Modifier.fillMaxWidth()

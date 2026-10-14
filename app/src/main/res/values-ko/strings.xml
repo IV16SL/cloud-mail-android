@@ -229,4 +229,9 @@
     <string name="login_passkey_failed">패스키 로그인 실패: %1$s</string>
     <string name="login_passkey_bad_type">PublicKey 자격 증명이 아닙니다: %1$s</string>
     <string name="offline_mode_banner">오프라인 모드 — 캐시된 메일 표시 중</string>
+    <string name="swipe_delete_forever">영구 삭제</string>
+    <string name="swipe_restore">복원</string>
+    <string name="mailbox_deleted_notice">삭제됨</string>
+    <string name="deleted_permanent_notice">영구 삭제됨</string>
+    <string name="deleted_restored_notice">복원됨</string>
 </resources>
