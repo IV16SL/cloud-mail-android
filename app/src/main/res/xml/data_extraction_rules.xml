@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  备份/换机迁移排除：登录会话（含加密 token 的 DataStore，也含邮件头缓存）不进
+  云备份、不随换机迁移。token 密文绑定本机 Keystore，迁到新设备也解不开，
+  不如直接排除；换机后重新登录即可。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/cloudmail.preferences_pb" />
+        <exclude domain="sharedpref" path="pgp_keys.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/cloudmail.preferences_pb" />
+        <exclude domain="sharedpref" path="pgp_keys.xml" />
+    </device-transfer>
+</data-extraction-rules>

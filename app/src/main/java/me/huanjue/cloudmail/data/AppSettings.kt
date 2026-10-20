@@ -88,11 +88,17 @@ class AppSettings(private val context: Context) {
     private fun readSessions(json: String?): List<UserSession> {
         if (json.isNullOrBlank()) return emptyList()
         return try {
-            gson.fromJson(json, Array<UserSession>::class.java)?.toList() ?: emptyList()
+            val list = gson.fromJson(json, Array<UserSession>::class.java)?.toList() ?: emptyList()
+            // DataStore 里存的是密文，读出时解密（旧版明文 token 兼容，下次写入自动转密文）
+            list.map { it.copy(token = TokenCipher.decrypt(it.token)) }
         } catch (_: Exception) {
             emptyList()
         }
     }
+
+    /** 写入 DataStore 前把 token 逐个加密 */
+    private fun encryptSessions(list: List<UserSession>): List<UserSession> =
+        list.map { it.copy(token = TokenCipher.encrypt(it.token)) }
 
     val sessions: Flow<List<UserSession>> =
         context.dataStore.data.map { readSessions(it[SESSIONS]) }
@@ -112,7 +118,7 @@ class AppSettings(private val context: Context) {
         context.dataStore.edit { prefs ->
             val list = readSessions(prefs[SESSIONS])
                 .filter { it.userId != session.userId } + session
-            prefs[SESSIONS] = gson.toJson(list)
+            prefs[SESSIONS] = gson.toJson(encryptSessions(list))
             prefs[ACTIVE_USER] = session.userId
             prefs.remove(TOKEN)
         }
@@ -134,7 +140,7 @@ class AppSettings(private val context: Context) {
         var next: UserSession? = null
         context.dataStore.edit { prefs ->
             val list = readSessions(prefs[SESSIONS]).filter { it.userId != userId }
-            prefs[SESSIONS] = gson.toJson(list)
+            prefs[SESSIONS] = gson.toJson(encryptSessions(list))
             next = if (list.isEmpty()) {
                 prefs.remove(ACTIVE_USER)
                 null
@@ -155,9 +161,9 @@ class AppSettings(private val context: Context) {
         }
     }
 
-    /** 旧版单 token（未迁移时） */
+    /** 旧版单 token（未迁移时），存的同样是密文，读出解密 */
     suspend fun getLegacyToken(): String? =
-        context.dataStore.data.map { it[TOKEN] }.first()
+        context.dataStore.data.map { it[TOKEN]?.let { stored -> TokenCipher.decrypt(stored) } }.first()
 
     // ---------- 服务器 ----------
 
@@ -191,7 +197,7 @@ class AppSettings(private val context: Context) {
     @Deprecated("多账号改用 saveSession")
     suspend fun setToken(value: String?) {
         context.dataStore.edit { prefs ->
-            if (value == null) prefs.remove(TOKEN) else prefs[TOKEN] = value
+            if (value == null) prefs.remove(TOKEN) else prefs[TOKEN] = TokenCipher.encrypt(value)
         }
     }
 
