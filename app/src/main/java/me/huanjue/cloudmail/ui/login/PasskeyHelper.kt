@@ -29,7 +29,12 @@ object PasskeyHelper {
     suspend fun getAssertion(activity: Activity, requestJson: String): String =
         withContext(Dispatchers.Main) {
             val credentialManager = CredentialManager.create(activity)
-            val option = GetPublicKeyCredentialOption(requestJson)
+            // 登录按钮场景：不要静默直取，必须弹账号选择 UI（Android 14+ 默认的
+            // immediately-available 流程在无即时凭证时会直接失败，不走选择界面）
+            val option = GetPublicKeyCredentialOption(
+                requestJson,
+                preferImmediatelyAvailableCredentials = false
+            )
             val request = GetCredentialRequest(listOf(option))
             val result = credentialManager.getCredential(activity, request)
             val credential = result.credential
